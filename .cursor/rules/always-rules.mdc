@@ -1,0 +1,407 @@
+---
+alwaysApply: true
+---
+
+# StructForge AI - 项目开发规则
+
+## 一、项目定位
+
+StructForge AI 是一个**通用、智能、自适应的**数据配置文件工作流系统，通过AI自主分析，无需预设模板即可处理各类文件格式和数据结构。
+
+## 二、目录结构规范
+
+### 2.1 项目根目录
+
+项目根目录为：`F:\StructForgeAI`
+
+```
+F:\StructForgeAI\
+├── backend/              # 后端服务（Python FastAPI）
+├── frontend/             # 前端应用（React + TypeScript，待开发）
+├── docs/                 # 项目文档
+├── data/                 # 数据目录（不提交到Git）
+│   ├── uploads/         # 上传文件
+│   ├── exports/         # 导出文件
+│   ├── vector_db/       # 向量数据库文件
+│   └── structforge.db   # SQLite数据库
+├── templates/           # 模板文件
+├── logs/                # 日志文件（不提交到Git）
+├── tests/               # 测试文件
+├── tools/               # 工具脚本
+└── README.md            # 项目说明
+```
+
+### 2.2 后端目录结构
+
+```
+backend/
+├── api/                 # API路由层
+│   ├── __init__.py     # 路由聚合
+│   ├── files.py        # 文件管理API
+│   ├── schemas.py      # Schema分析API
+│   ├── workflows.py    # 工作流API
+│   └── ai.py           # AI服务API
+├── core/                # 核心模块
+│   ├── __init__.py
+│   ├── config.py       # 配置管理
+│   └── logging_config.py # 日志配置
+├── data_parser/         # 文件解析层
+│   ├── __init__.py
+│   ├── base_parser.py  # 解析器基类
+│   ├── xml_parser.py   # XML解析器
+│   ├── json_parser.py  # JSON解析器
+│   ├── yaml_parser.py  # YAML解析器
+│   ├── csv_parser.py   # CSV/TSV解析器
+│   ├── excel_parser.py # Excel解析器
+│   └── parser_factory.py # 解析器工厂
+├── schema_learner/      # Schema学习层
+│   ├── __init__.py
+│   ├── base_learner.py  # 学习器基类
+│   ├── ai_learner.py   # AI学习器（LLM驱动）
+│   └── rule_learner.py # 规则学习器
+├── ai_integration/      # AI集成层
+│   ├── __init__.py
+│   ├── llm_client.py    # LLM客户端
+│   ├── embedding_client.py # 嵌入向量客户端
+│   └── vector_db.py    # 向量数据库
+├── workflow/            # 工作流引擎
+│   ├── __init__.py
+│   ├── workflow_engine.py # 工作流引擎核心
+│   └── default_workflows.py # 默认工作流定义
+├── main.py              # 应用入口
+└── requirements.txt    # Python依赖
+```
+
+### 2.3 目录命名规则
+
+- **目录名**：使用 `snake_case`（小写字母+下划线）
+  - ✅ 正确：`data_parser`, `schema_learner`, `ai_integration`
+  - ❌ 错误：`DataParser`, `schema-learner`, `AI_Integration`
+
+- **模块目录**：每个目录必须包含 `__init__.py` 文件
+
+## 三、代码命名规范
+
+### 3.1 Python 命名规则
+
+#### 类名（Class Names）
+- 使用 **PascalCase**（大驼峰）
+- 类名应该清晰表达其用途
+- ✅ 正确：`BaseParser`, `XMLParser`, `AISchemaLearner`, `WorkflowEngine`
+- ❌ 错误：`base_parser`, `XML_Parser`, `aiSchemaLearner`
+
+#### 函数/方法名（Function/Method Names）
+- 使用 **snake_case**（小写字母+下划线）
+- 函数名应该是动词或动词短语
+- ✅ 正确：`parse()`, `detect_schema()`, `upload_file()`, `learn_schema()`
+- ❌ 错误：`Parse()`, `detectSchema()`, `upload-file()`
+
+#### 变量名（Variable Names）
+- 使用 **snake_case**
+- ✅ 正确：`file_path`, `parser`, `schema_data`, `workflow_id`
+- ❌ 错误：`filePath`, `Parser`, `schema-data`
+
+#### 常量名（Constants）
+- 使用 **UPPER_CASE**（全大写下划线分隔）
+- 定义在模块级别或类中
+- ✅ 正确：`UPLOAD_DIR`, `AI_MODEL_PROVIDER`, `MAX_TOKENS`
+- ❌ 错误：`upload_dir`, `aiModelProvider`
+
+#### 私有成员（Private Members）
+- 使用单下划线前缀 `_` 表示内部使用
+- ✅ 正确：`_parse_sheet()`, `_detect_delimiter()`, `_init_faiss()`
+
+#### 特殊方法（Magic Methods）
+- 遵循Python约定：`__init__()`, `__str__()`, `__repr__()`
+
+### 3.2 API 路由命名
+
+- 使用 **kebab-case**（小写字母+连字符）
+- ✅ 正确：`/api/v1/files/upload`, `/api/v1/schemas/infer-intent`
+- ❌ 错误：`/api/v1/files/upload_file`, `/api/v1/schemas/inferIntent`
+
+### 3.3 文件命名
+
+- Python文件：使用 `snake_case`
+  - ✅ 正确：`base_parser.py`, `xml_parser.py`, `workflow_engine.py`
+  - ❌ 错误：`BaseParser.py`, `XMLParser.py`
+
+- 配置/文档文件：
+  - ✅ 正确：`README.md`, `.env.example`, `ARCHITECTURE.md`
+  - 使用大写：`README.md`, `.env`
+
+## 四、代码风格规范
+
+### 4.1 类型提示（Type Hints）
+
+- **必须**为所有函数参数和返回值添加类型提示
+- 使用 `typing` 模块的类型：`Dict`, `List`, `Optional`, `Any`
+
+```python
+# ✅ 正确
+def parse(self, file_path: Path) -> Dict[str, Any]:
+    pass
+
+def learn_schema(
+    self, 
+    data: Dict[str, Any], 
+    metadata: Optional[Dict] = None
+) -> Dict[str, Any]:
+    pass
+
+# ❌ 错误
+def parse(file_path):
+    pass
+```
+
+### 4.2 文档字符串（Docstrings）
+
+- 所有公共类、方法、函数必须有docstring
+- 使用Google风格或NumPy风格
+
+```python
+# ✅ 正确
+def parse(self, file_path: Path) -> Dict[str, Any]:
+    """
+    解析文件并返回结构化数据
+    
+    Args:
+        file_path: 文件路径
+        
+    Returns:
+        解析后的数据结构
+    """
+    pass
+```
+
+### 4.3 导入顺序
+
+1. 标准库导入
+2. 第三方库导入
+3. 本地应用导入
+
+```python
+# ✅ 正确
+from pathlib import Path
+from typing import Dict, Any
+import json
+
+from fastapi import APIRouter
+import numpy as np
+
+from core.config import settings
+from data_parser.base_parser import BaseParser
+```
+
+### 4.4 错误处理
+
+- 使用 `try-except` 进行错误处理
+- 记录错误日志
+- 抛出有意义的异常
+
+```python
+# ✅ 正确
+try:
+    data = parser.parse(file_path)
+except Exception as e:
+    logger.error(f"文件解析失败: {e}")
+    raise HTTPException(status_code=500, detail=str(e))
+```
+
+### 4.5 日志记录
+
+- 使用 `core.logging_config.logger` 记录日志
+- 日志级别：DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+```python
+from core.logging_config import logger
+
+logger.info("文件上传成功")
+logger.error(f"解析失败: {e}")
+logger.warning("使用备用解析器")
+```
+
+## 五、架构设计原则
+
+### 5.1 模块化设计
+
+- 每个模块职责单一
+- 使用抽象基类定义接口
+- 使用工厂模式创建实例
+
+### 5.2 依赖注入
+
+- 配置通过 `core.config.settings` 统一管理
+- 不要在模块中硬编码路径或配置
+
+```python
+# ✅ 正确
+from core.config import settings
+upload_dir = Path(settings.UPLOAD_DIR)
+
+# ❌ 错误
+upload_dir = Path("./uploads")
+```
+
+### 5.3 接口抽象
+
+- 解析器继承 `BaseParser`
+- 学习器继承 `BaseSchemaLearner`
+- 新格式支持通过实现接口添加
+
+### 5.4 AI集成
+
+- LLM客户端支持多提供商（Ollama/LM Studio/OpenAI）
+- 使用配置切换提供商，不硬编码
+- 向量数据库支持FAISS和ChromaDB
+
+## 六、文件格式支持
+
+### 6.1 当前支持的格式
+
+- ✅ XML (`.xml`)
+- ✅ JSON (`.json`)
+- ✅ YAML (`.yaml`, `.yml`)
+- ✅ CSV (`.csv`)
+- ✅ TSV (`.tsv`)
+- ✅ Excel (`.xlsx`, `.xls`)
+
+### 6.2 添加新格式
+
+1. 在 `data_parser/` 创建新的解析器类
+2. 继承 `BaseParser` 实现必需方法
+3. 在 `parser_factory.py` 中注册
+
+## 七、路径配置规则
+
+### 7.1 路径规范
+
+- **所有路径**统一配置在 `backend/core/config.py`
+- 使用 `F:\StructForgeAI` 作为根目录
+- 使用 `pathlib.Path` 处理路径，不使用字符串拼接
+
+```python
+# ✅ 正确
+from pathlib import Path
+file_path = Path(settings.UPLOAD_DIR) / filename
+
+# ❌ 错误
+file_path = settings.UPLOAD_DIR + "/" + filename
+```
+
+### 7.2 路径创建
+
+- 使用 `mkdir(parents=True, exist_ok=True)` 创建目录
+- 创建前检查父目录是否存在
+
+## 八、API设计规范
+
+### 8.1 RESTful API
+
+- 使用标准HTTP方法：GET, POST, PUT, DELETE
+- URL使用复数名词：`/api/v1/files`, `/api/v1/schemas`
+- 使用适当的HTTP状态码
+
+### 8.2 响应格式
+
+- 成功响应返回JSON对象
+- 错误响应使用 `HTTPException`
+- 统一错误格式：`{"detail": "错误信息"}`
+
+### 8.3 API版本
+
+- 使用URL版本控制：`/api/v1/`
+- 新版本创建新的路由模块
+
+## 九、测试规范
+
+### 9.1 测试文件位置
+
+- 单元测试：`tests/unit/`
+- 集成测试：`tests/integration/`
+- 测试文件命名：`test_*.py`
+
+### 9.2 测试命名
+
+- 测试函数：`test_<功能描述>()`
+- 测试类：`Test<类名>`
+
+## 十、Git提交规范
+
+### 10.1 提交信息格式
+
+```
+<type>(<scope>): <subject>
+
+<body>
+```
+
+**Type类型**：
+- `feat`: 新功能
+- `fix`: 修复bug
+- `docs`: 文档更新
+- `style`: 代码格式调整
+- `refactor`: 重构
+- `test`: 测试相关
+- `chore`: 构建/工具相关
+
+**示例**：
+```
+feat(parser): 添加Excel解析器支持
+
+- 支持.xlsx和.xls格式
+- 支持多Sheet解析
+- 自动推断数据类型
+```
+
+## 十一、性能优化规范
+
+### 11.1 RTX 4060优化
+
+- 使用Q4量化模型（推荐Qwen2.5-7B）
+- VRAM占用控制在6GB以内
+- 使用异步处理大文件
+- 缓存常见Schema分析结果
+
+### 11.2 内存管理
+
+- 大文件使用流式处理
+- 及时释放不需要的对象
+- 避免在内存中保存过多数据
+
+## 十二、代码审查检查清单
+
+编写代码时确保：
+- [ ] 遵循命名规范（类PascalCase，函数snake_case）
+- [ ] 添加类型提示
+- [ ] 添加docstring
+- [ ] 使用logger记录日志
+- [ ] 错误处理完善
+- [ ] 路径使用pathlib.Path
+- [ ] 配置通过settings获取
+- [ ] API路由使用kebab-case
+- [ ] 代码格式符合PEP 8
+
+## 十三、特殊约定
+
+### 13.1 AI模型
+
+- 默认模型：Qwen2.5-7B-Instruct (Q4量化)
+- 提供商优先级：Ollama > LM Studio > OpenAI
+- 支持本地部署优先，保护数据隐私
+
+### 13.2 文件处理
+
+- 上传文件保存在 `data/uploads/`
+- 导出文件保存在 `data/exports/`
+- 支持的文件大小限制：默认100MB
+
+### 13.3 日志文件
+
+- 日志保存在 `logs/` 目录
+- 日志文件不提交到Git
+- 使用轮转避免日志文件过大
+
+---
+
+**遵循这些规范确保代码质量和项目一致性！**
