@@ -1,6 +1,6 @@
 .workflow-canvas-container {
   width: 100%;
-  height: calc(100vh - 200px);
+  height: 100%;
   position: relative;
   background: #fafafa;
 }
@@ -17,23 +17,66 @@
   cursor: grabbing;
 }
 
+/* 连接点样式 - n8n风格（小的灰色圆形点） */
 .workflow-canvas-container .react-flow__handle {
-  border: 2px solid #fff;
-  transition: all 0.2s;
+  background: #d9d9d9 !important;
+  width: 8px !important;
+  height: 8px !important;
+  border: none !important;
+  border-radius: 50%;
+  opacity: 1 !important;
+  transition: all 0.2s ease;
 }
 
 .workflow-canvas-container .react-flow__handle:hover {
-  transform: scale(1.2);
-  border-color: #1890ff;
+  background: #1890ff !important;
+  transform: scale(1.3);
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.1);
 }
 
+.workflow-canvas-container .react-flow__handle.connecting {
+  background: #1890ff !important;
+  transform: scale(1.4);
+}
+
+/* 连线样式 - n8n风格的平滑曲线 */
 .workflow-canvas-container .react-flow__edge-path {
+  stroke: #8c8c8c;
   stroke-width: 2;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .workflow-canvas-container .react-flow__edge:hover .react-flow__edge-path {
   stroke-width: 3;
   stroke: #1890ff;
+}
+
+/* 连线动画效果 - 数据流动 */
+.workflow-canvas-container .react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  stroke-dashoffset: 0;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* 连接线动画 - 流动效果 */
+.workflow-canvas-container .react-flow__edge.animated {
+  filter: drop-shadow(0 0 2px rgba(24, 144, 255, 0.4));
+}
+
+/* 选中连线时的效果 */
+.workflow-canvas-container .react-flow__edge.selected .react-flow__edge-path {
+  stroke: #1890ff;
+  stroke-width: 3;
+}
+
+/* 背景网格样式 */
+.workflow-canvas-container .react-flow__background {
+  --pattern-color: #e8e8e8;
 }
 

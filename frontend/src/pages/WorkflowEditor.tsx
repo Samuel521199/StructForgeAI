@@ -1,9 +1,12 @@
-import { useState, useCallback, useEffect } from 'react'
-import { Button, message, Modal, Select } from 'antd'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Button, message, Modal, Select, Spin } from 'antd'
 import { PlayCircleOutlined } from '@ant-design/icons'
-import type { Node, Edge, Connection } from 'react-flow-renderer'
+import { useSearchParams } from 'react-router-dom'
+import type { Node, Edge, Connection, ReactFlowInstance } from 'reactflow'
 import WorkflowHeader from '@/components/Workflow/WorkflowHeader'
 import WorkflowCanvas from '@/components/Workflow/WorkflowCanvas'
+import NodeDetailPanel from '@/components/Workflow/NodeDetailPanel'
+import NodeSelector from '@/components/Workflow/NodeSelector'
 import { workflowApi } from '@/services/api'
 import type { NodeType } from '@/components/Workflow/WorkflowNode'
 import './WorkflowEditor.css'
@@ -110,23 +113,209 @@ const getInitialEdges = (): Edge[] => [
 ]
 
 const WorkflowEditor = () => {
-  const [nodes, setNodes] = useState<Node[]>(getInitialNodes())
-  const [edges, setEdges] = useState<Edge[]>(getInitialEdges())
-  const [workflowName, setWorkflowName] = useState('新建工作流')
+  console.log('WorkflowEditor component rendering...')
+  
+  const [searchParams, setSearchParams] = useSearchParams()
+  const workflowId = searchParams.get('id') // 从URL参数获取工作流ID
+  const nameFromUrl = searchParams.get('name') // 从URL参数获取工作流名称
+  const descriptionFromUrl = searchParams.get('description') // 从URL参数获取工作流描述
+  
+  console.log('WorkflowEditor - workflowId from URL:', workflowId)
+  console.log('WorkflowEditor - name from URL:', nameFromUrl)
+  console.log('WorkflowEditor - description from URL:', descriptionFromUrl)
+  
+  // 新建工作流应该从空节点开始，不是默认节点
+  // 只有在加载已有工作流失败时才使用默认节点
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [edges, setEdges] = useState<Edge[]>([])
+  // 如果URL中有名称，使用URL中的名称；否则使用默认名称
+  const [workflowName, setWorkflowName] = useState(nameFromUrl ? decodeURIComponent(nameFromUrl) : '新建工作流')
+  const [workflowDescription, setWorkflowDescription] = useState<string>(descriptionFromUrl ? decodeURIComponent(descriptionFromUrl) : '')
   const [isActive, setIsActive] = useState(false)
   const [loading, setLoading] = useState(false)
   const [executeModalVisible, setExecuteModalVisible] = useState(false)
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>('')
-
+  // 如果没有workflowId，立即设置为已初始化，确保界面能显示
+  const [initialized, setInitialized] = useState(!workflowId)
+  
+  console.log('WorkflowEditor - current state:', {
+    nodesCount: nodes.length,
+    edgesCount: edges.length,
+    initialized,
+    loading,
+    workflowId
+  })
+  
+  // 节点详情面板相关状态
+  const [nodeDetailVisible, setNodeDetailVisible] = useState(false)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [selectedNodeData, setSelectedNodeData] = useState<any>(null)
+  
+  // 节点选择器相关状态
+  const [nodeSelectorVisible, setNodeSelectorVisible] = useState(false)
+  const [addNodePosition, setAddNodePosition] = useState<{ x: number; y: number } | null>(null)
+  
+  // ReactFlow实例引用
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null)
+  
+  // 用于跟踪是否刚刚保存了新工作流，避免URL更新后重新加载
+  const justSavedRef = useRef<string | null>(null)
+  
+  // 执行状态相关（暂时未使用，保留用于后续功能）
+  // const [executionStatus, setExecutionStatus] = useState<Record<string, 'pending' | 'running' | 'completed' | 'failed'>>({})
+  
   useEffect(() => {
-    loadWorkflows()
-  }, [])
+    console.log('WorkflowEditor useEffect triggered, workflowId:', workflowId)
+    let mounted = true
+    
+    // 如果刚刚保存了这个工作流，跳过重新加载（数据已经是最新的）
+    if (workflowId && justSavedRef.current === workflowId) {
+      console.log('WorkflowEditor: 刚刚保存了该工作流，跳过重新加载')
+      justSavedRef.current = null // 清除标记
+      return
+    }
+    
+    const initialize = async () => {
+      try {
+        if (workflowId) {
+          // 如果有工作流ID，加载已有工作流
+          console.log('Loading workflow with ID:', workflowId)
+          await loadWorkflow(workflowId)
+        } else {
+          // 新建工作流，从空节点开始
+          console.log('New workflow, starting with empty nodes')
+          if (mounted) {
+            setNodes([])
+            setEdges([])
+            // 如果URL中有名称和描述，使用它们
+            if (nameFromUrl) {
+              setWorkflowName(decodeURIComponent(nameFromUrl))
+            } else {
+              setWorkflowName('新建工作流')
+            }
+            if (descriptionFromUrl) {
+              setWorkflowDescription(decodeURIComponent(descriptionFromUrl))
+            }
+            setInitialized(true)
+            setLoading(false)
+            console.log('WorkflowEditor: 新工作流初始化完成（空节点）')
+          }
+          // 异步加载工作流列表（不阻塞界面显示）
+          if (mounted) {
+            loadWorkflows().catch(err => {
+              console.error('加载工作流列表失败（不影响界面显示）:', err)
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Initialization error:', error)
+        if (mounted) {
+          // 即使出错也设置为已初始化，显示空节点（新建工作流从空开始）
+          setNodes([])
+          setEdges([])
+          setInitialized(true)
+          setLoading(false)
+        }
+      }
+    }
+    
+    // 如果没有workflowId，新建工作流应该从空节点开始
+    if (!workflowId) {
+      console.log('WorkflowEditor: 没有workflowId，新建工作流，从空节点开始')
+      setNodes([])
+      setEdges([])
+      // 如果URL中有名称和描述，使用它们
+      if (nameFromUrl) {
+        setWorkflowName(decodeURIComponent(nameFromUrl))
+      } else {
+        setWorkflowName('新建工作流')
+      }
+      if (descriptionFromUrl) {
+        setWorkflowDescription(decodeURIComponent(descriptionFromUrl))
+      }
+      setInitialized(true)
+      setLoading(false)
+      // 异步加载工作流列表
+      loadWorkflows().catch(err => {
+        console.error('加载工作流列表失败（不影响界面显示）:', err)
+      })
+    } else {
+      // 有workflowId，异步加载已有工作流
+      initialize()
+    }
+    
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowId, nameFromUrl, descriptionFromUrl]) // 当workflowId、nameFromUrl或descriptionFromUrl变化时重新初始化
+
+  const loadWorkflow = async (id: string) => {
+    try {
+      setLoading(true)
+      const workflow = await workflowApi.load(id)
+      
+      console.log('WorkflowEditor: 加载工作流数据:', {
+        id,
+        nodesCount: workflow.nodes?.length || 0,
+        edgesCount: workflow.edges?.length || 0,
+        isDefault: (workflow as any).is_default
+      })
+      
+      // 加载工作流数据，即使为空也使用空数组（不设置默认节点）
+      if (workflow.nodes && Array.isArray(workflow.nodes) && workflow.nodes.length > 0) {
+        setNodes(workflow.nodes as Node[])
+      } else {
+        // 如果是默认工作流，显示默认节点作为模板；否则显示空节点
+        if ((workflow as any).is_default) {
+          console.log('WorkflowEditor: 默认工作流，使用默认节点作为模板')
+          setNodes(getInitialNodes())
+          setEdges(getInitialEdges())
+        } else {
+          console.log('WorkflowEditor: 工作流没有节点，显示空节点')
+          setNodes([])
+          setEdges([])
+        }
+      }
+      
+      if (workflow.edges && Array.isArray(workflow.edges) && workflow.edges.length > 0) {
+        setEdges(workflow.edges as Edge[])
+      } else if (!(workflow as any).is_default) {
+        // 如果不是默认工作流且没有边，设置为空
+        setEdges([])
+      }
+      
+      if (workflow.name) {
+        setWorkflowName(workflow.name)
+      }
+      
+      if (workflow.description) {
+        setWorkflowDescription(workflow.description)
+      }
+      
+      if (workflow.is_active !== undefined) {
+        setIsActive(workflow.is_active)
+      }
+      
+      setInitialized(true)
+      message.success('工作流加载成功')
+    } catch (error: any) {
+      console.error('加载工作流失败:', error)
+      message.error(`加载工作流失败: ${error.message}`)
+      // 加载失败时显示空节点，让用户可以重新创建
+      setNodes([])
+      setEdges([])
+      setInitialized(true)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadWorkflows = async () => {
     try {
       const res = await workflowApi.list()
       if (res.workflows.length > 0) {
-        setSelectedWorkflow(res.workflows[0])
+        setSelectedWorkflow(res.workflows[0].workflow_id)
       }
     } catch (error: any) {
       console.error('加载工作流列表失败:', error)
@@ -134,7 +323,53 @@ const WorkflowEditor = () => {
   }
 
   const handleNodesChange = useCallback((newNodes: Node[]) => {
-    setNodes(newNodes)
+    // 使用函数式更新，只在位置确实变化时更新
+    setNodes((prevNodes) => {
+      // 如果节点数量相同，检查是否有位置变化
+      if (prevNodes.length === newNodes.length) {
+        let hasPositionChange = false
+        const updatedNodes = prevNodes.map((prevNode) => {
+          const newNode = newNodes.find(n => n.id === prevNode.id)
+          if (newNode) {
+            // 检查位置是否变化
+            if (prevNode.position.x !== newNode.position.x || 
+                prevNode.position.y !== newNode.position.y) {
+              hasPositionChange = true
+              // 位置变化，使用新位置
+              return newNode
+            }
+            // 位置未变化，保留原节点（包括其他状态）
+            return prevNode
+          }
+          return prevNode
+        })
+        // 如果有位置变化，更新所有节点
+        if (hasPositionChange) {
+          return updatedNodes
+        }
+        // 没有位置变化，保持原状态
+        return prevNodes
+      }
+      // 节点数量变化，智能合并（保留已存在节点的位置）
+      if (newNodes.length > prevNodes.length) {
+        // 添加节点，保留已存在节点的位置
+        const prevNodeMap = new Map(prevNodes.map(n => [n.id, n]))
+        return newNodes.map((newNode) => {
+          const prevNode = prevNodeMap.get(newNode.id)
+          if (prevNode) {
+            // 已存在的节点，保留位置
+            return {
+              ...newNode,
+              position: prevNode.position,
+            }
+          }
+          // 新节点，使用新位置
+          return newNode
+        })
+      }
+      // 删除节点，完全更新
+      return newNodes
+    })
   }, [])
 
   const handleEdgesChange = useCallback((newEdges: Edge[]) => {
@@ -142,16 +377,51 @@ const WorkflowEditor = () => {
   }, [])
 
   const handleConnect = useCallback((connection: Connection) => {
+    if (!connection.source || !connection.target) {
+      return
+    }
+    const source = connection.source as string
+    const target = connection.target as string
     setEdges((eds) => {
-      const newEdges = [...eds, { ...connection, id: `e${connection.source}-${connection.target}` }]
-      return newEdges
+      const newEdge: Edge = {
+        ...connection,
+        id: `e${source}-${target}`,
+        source,
+        target,
+      }
+      return [...eds, newEdge]
     })
   }, [])
 
-  const handleSave = useCallback(() => {
-    // TODO: 保存工作流到后端
-    message.success('工作流已保存')
-  }, [nodes, edges])
+  const handleSave = useCallback(async () => {
+    try {
+      setLoading(true)
+      // 如果有workflowId，更新现有工作流；否则创建新工作流
+      const id = workflowId || `custom_${Date.now()}`
+      console.log('WorkflowEditor: 保存工作流', { workflowId, newId: id, nodesCount: nodes.length })
+      
+      await workflowApi.save(id, {
+        nodes,
+        edges,
+        name: workflowName,
+        description: workflowDescription || '自定义工作流',
+        is_active: isActive,
+      })
+      message.success('工作流已保存')
+      
+      // 如果是新工作流，更新URL（使用setSearchParams确保React Router正确更新）
+      if (!workflowId) {
+        console.log('WorkflowEditor: 新工作流保存成功，更新URL为:', id)
+        // 标记刚刚保存，避免URL更新后重新加载
+        justSavedRef.current = id
+        setSearchParams({ id }, { replace: true })
+      }
+    } catch (error: any) {
+      message.error(`保存失败: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [nodes, edges, workflowName, isActive, workflowId, setSearchParams])
 
   const handleShare = useCallback(() => {
     message.info('分享功能开发中')
@@ -176,9 +446,14 @@ const WorkflowEditor = () => {
         output_format: 'json',
       }
 
-      await workflowApi.execute(selectedWorkflow, context)
+      const result = await workflowApi.execute(selectedWorkflow, context)
       message.success('工作流执行已启动')
       setExecuteModalVisible(false)
+      
+      // 开始轮询执行状态
+      if (result.execution_id) {
+        pollExecutionStatus(result.execution_id)
+      }
     } catch (error: any) {
       message.error(`执行失败: ${error.message}`)
     } finally {
@@ -186,25 +461,277 @@ const WorkflowEditor = () => {
     }
   }
 
+  // 轮询执行状态
+  const pollExecutionStatus = useCallback(async (executionId: string) => {
+    const maxAttempts = 60
+    let attempts = 0
+    
+    const poll = async () => {
+      if (attempts >= maxAttempts) {
+        return
+      }
+      
+      try {
+        const status = await workflowApi.getStatus(executionId)
+        
+        // 更新节点状态
+        if (status.steps) {
+          setNodes((nds) => {
+            return nds.map((node) => {
+              // 查找匹配的步骤
+              const step = status.steps?.find((s: any) => s.step === node.data.type)
+              if (step) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    status: step.status as 'pending' | 'running' | 'completed' | 'failed',
+                  },
+                }
+              }
+              return node
+            })
+          })
+        }
+        
+        if (status.status === 'completed' || status.status === 'failed') {
+          return
+        }
+        
+        attempts++
+        setTimeout(poll, 1000) // 每秒轮询一次
+      } catch (error) {
+        console.error('获取执行状态失败:', error)
+      }
+    }
+    
+    poll()
+  }, [])
+  
+  // 处理节点双击 - 打开节点详情面板
+  const handleNodeDoubleClick = useCallback((nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId)
+    if (node) {
+      setSelectedNodeId(nodeId)
+      setSelectedNodeData(node.data)
+      setNodeDetailVisible(true)
+    }
+  }, [nodes])
+  
+  // 处理节点配置保存
+  const handleNodeConfigSave = useCallback((values: { label: string; description: string; config: Record<string, any> }) => {
+    if (!selectedNodeId) return
+    
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === selectedNodeId) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: values.label,
+              description: values.description,
+              config: values.config,
+            },
+          }
+        }
+        return node
+      })
+    )
+    
+    // 更新当前选中的节点数据
+    setSelectedNodeData((prev: any) => ({
+      ...prev,
+      label: values.label,
+      description: values.description,
+      config: values.config,
+    }))
+    
+    message.success('节点配置已保存')
+  }, [selectedNodeId])
+  
+  // 处理节点详情面板关闭
+  const handleNodeDetailClose = useCallback(() => {
+    setNodeDetailVisible(false)
+    // 延迟清理，避免关闭动画闪烁
+    setTimeout(() => {
+      setSelectedNodeId(null)
+      setSelectedNodeData(null)
+    }, 300)
+  }, [])
+  
+  // 处理节点执行
+  const handleNodeExecute = useCallback(() => {
+    if (!selectedNodeId) return
+    message.info('节点执行功能开发中')
+    // TODO: 实现单个节点执行
+  }, [selectedNodeId])
+  
+  // 处理ReactFlow实例初始化
+  const handleInit = useCallback((instance: any) => {
+    reactFlowInstance.current = instance
+  }, [])
+  
+  // 处理添加节点请求（通过工具栏按钮）
+  const handleAddNodeRequest = useCallback((position: { x: number; y: number }) => {
+    setAddNodePosition(position)
+    setNodeSelectorVisible(true)
+  }, [])
+  
+  // 处理节点选择
+  const handleNodeSelect = useCallback((nodeType: NodeType) => {
+    if (!addNodePosition) return
+    
+    const newNodeId = `node_${Date.now()}`
+    const newNode: Node = {
+      id: newNodeId,
+      type: 'default',
+      position: addNodePosition,
+      data: {
+        type: nodeType,
+        ...defaultNodeConfigs[nodeType],
+        config: {},
+      },
+    }
+    
+    setNodes((nds) => [...nds, newNode])
+    setNodeSelectorVisible(false)
+    setAddNodePosition(null)
+    message.success('节点已添加')
+  }, [addNodePosition])
+  
+  // 处理节点删除
+  const handleNodesDelete = useCallback((nodesToDelete: Node[]) => {
+    const nodeIds = nodesToDelete.map(n => n.id)
+    
+    // 删除节点
+    setNodes((nds) => nds.filter(n => !nodeIds.includes(n.id)))
+    
+    // 删除相关连接
+    setEdges((eds) =>
+      eds.filter(
+        (edge) => !nodeIds.includes(edge.source) && !nodeIds.includes(edge.target)
+      )
+    )
+    
+    message.success(`已删除 ${nodesToDelete.length} 个节点`)
+  }, [])
+
+  // 确保组件至少渲染基本结构
+  console.log('WorkflowEditor render:', { 
+    nodesCount: nodes.length, 
+    edgesCount: edges.length, 
+    initialized, 
+    loading,
+    workflowId
+  })
+  
+  // 如果初始化失败，确保至少显示一些内容（使用useEffect避免在render中setState）
+  useEffect(() => {
+    console.log('WorkflowEditor - backup useEffect triggered:', { workflowId, initialized, loading, nodesCount: nodes.length })
+    
+    // 如果没有workflowId且未初始化，立即初始化（新建工作流从空节点开始）
+    if (!workflowId && !initialized) {
+      console.log('WorkflowEditor: 新工作流，从空节点开始')
+      setNodes([])
+      setEdges([])
+      // 如果URL中有名称和描述，使用它们
+      if (nameFromUrl) {
+        setWorkflowName(decodeURIComponent(nameFromUrl))
+      } else {
+        setWorkflowName('新建工作流')
+      }
+      if (descriptionFromUrl) {
+        setWorkflowDescription(decodeURIComponent(descriptionFromUrl))
+      }
+      setInitialized(true)
+      setLoading(false)
+      console.log('WorkflowEditor: 初始化完成（空节点）')
+    }
+    // 如果加载已有工作流失败且没有节点，保持空节点（不设置默认节点）
+    else if (workflowId && !initialized && !loading && nodes.length === 0) {
+      console.warn('WorkflowEditor: 加载工作流失败，保持空节点状态')
+      setInitialized(true)
+    }
+  }, [workflowId, initialized, loading, nodes.length, nameFromUrl, descriptionFromUrl])
+
+  // 渲染前的最终状态检查
+  const renderState = {
+    loading,
+    initialized,
+    nodesCount: nodes.length,
+    shouldShowLoading: loading && !initialized,
+    shouldShowCanvas: !(loading && !initialized) && nodes.length > 0,
+    shouldShowEmpty: !(loading && !initialized) && nodes.length === 0
+  }
+  
+  console.log('WorkflowEditor - render state:', renderState)
+  console.log('WorkflowEditor - will render:', {
+    loading: renderState.shouldShowLoading,
+    canvas: renderState.shouldShowCanvas,
+    empty: renderState.shouldShowEmpty
+  })
+
   return (
-    <div className="workflow-editor">
+    <div className="workflow-editor" style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
       <WorkflowHeader
         workflowName={workflowName}
         isActive={isActive}
         onActiveChange={setIsActive}
+        onNameChange={setWorkflowName}
         onSave={handleSave}
         onShare={handleShare}
       />
 
-      <div className="workflow-editor-content">
-        <WorkflowCanvas
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={handleEdgesChange}
-          onConnect={handleConnect}
-        />
+      <div className="workflow-editor-content" style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#fafafa' }}>
+        {loading && !initialized ? (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            width: '100%',
+            height: '100%',
+            minHeight: '600px',
+            background: '#fff'
+          }}>
+            <Spin size="large" tip="加载工作流..." />
+          </div>
+        ) : (
+          <WorkflowCanvas
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={handleConnect}
+            onNodeDoubleClick={handleNodeDoubleClick}
+            onNodesDelete={handleNodesDelete}
+            onInit={handleInit}
+            onAddNodeRequest={handleAddNodeRequest}
+          />
+        )}
       </div>
+      
+      {/* 节点详情面板 */}
+      {selectedNodeId && selectedNodeData && (
+        <NodeDetailPanel
+          open={nodeDetailVisible}
+          nodeId={selectedNodeId}
+          nodeData={selectedNodeData}
+          onClose={handleNodeDetailClose}
+          onSave={handleNodeConfigSave}
+          onExecute={handleNodeExecute}
+        />
+      )}
+      
+      {/* 节点选择器 */}
+      <NodeSelector
+        open={nodeSelectorVisible}
+        onSelect={handleNodeSelect}
+        onCancel={() => {
+          setNodeSelectorVisible(false)
+          setAddNodePosition(null)
+        }}
+      />
 
       <div className="workflow-editor-footer">
         <Button

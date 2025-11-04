@@ -25,8 +25,8 @@ if %errorlevel% neq 0 (
 )
 
 echo 正在启动服务...
-echo 访问地址: http://localhost:8000
-echo API文档: http://localhost:8000/docs
+echo 访问地址: http://localhost:8001
+echo API文档: http://localhost:8001/docs
 echo.
 
 REM 启动服务

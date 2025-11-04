@@ -203,9 +203,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### 步骤7：验证部署
 
-- ✅ **健康检查**: http://localhost:8000/health
-- ✅ **API文档**: http://localhost:8000/docs（Swagger UI）
-- ✅ **ReDoc文档**: http://localhost:8000/redoc
+- ✅ **健康检查**: http://localhost:8001/health
+- ✅ **API文档**: http://localhost:8001/docs（Swagger UI）
+- ✅ **ReDoc文档**: http://localhost:8001/redoc
 
 ---
 
@@ -216,7 +216,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 #### 1. 上传文件
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/files/upload" \
+curl -X POST "http://localhost:8001/api/v1/files/upload" \
   -F "file=@weapons.xml"
 ```
 
@@ -232,7 +232,7 @@ curl -X POST "http://localhost:8000/api/v1/files/upload" \
 #### 2. 解析文件
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/files/parse" \
+curl -X POST "http://localhost:8001/api/v1/files/parse" \
   -H "Content-Type: application/json" \
   -d '{
     "file_path": "F:/StructForgeAI/data/uploads/weapons.xml"
@@ -242,7 +242,7 @@ curl -X POST "http://localhost:8000/api/v1/files/parse" \
 #### 3. 分析Schema（AI模式）
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/schemas/analyze" \
+curl -X POST "http://localhost:8001/api/v1/schemas/analyze" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -262,7 +262,7 @@ curl -X POST "http://localhost:8000/api/v1/schemas/analyze" \
 #### 4. 自然语言编辑
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/schemas/infer-intent" \
+curl -X POST "http://localhost:8001/api/v1/schemas/infer-intent" \
   -H "Content-Type: application/json" \
   -d '{
     "instruction": "复制这把帝国剑，但把重量降到2.5，攻击范围提高10%",
@@ -295,7 +295,7 @@ curl -X POST "http://localhost:8000/api/v1/schemas/infer-intent" \
 #### 5. 执行完整工作流
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/workflows/execute/full_pipeline" \
+curl -X POST "http://localhost:8001/api/v1/workflows/execute/full_pipeline" \
   -H "Content-Type: application/json" \
   -d '{
     "file_path": "F:/StructForgeAI/data/uploads/weapons.xml",
@@ -310,7 +310,7 @@ curl -X POST "http://localhost:8000/api/v1/workflows/execute/full_pipeline" \
 ```python
 import requests
 
-BASE_URL = "http://localhost:8000/api/v1"
+BASE_URL = "http://localhost:8001/api/v1"
 
 # 上传文件
 with open("weapons.xml", "rb") as f:
@@ -656,9 +656,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### Step 7: Verify Deployment
 
-- ✅ **Health Check**: http://localhost:8000/health
-- ✅ **API Documentation**: http://localhost:8000/docs (Swagger UI)
-- ✅ **ReDoc Documentation**: http://localhost:8000/redoc
+- ✅ **Health Check**: http://localhost:8001/health
+- ✅ **API Documentation**: http://localhost:8001/docs (Swagger UI)
+- ✅ **ReDoc Documentation**: http://localhost:8001/redoc
 
 ---
 
@@ -669,14 +669,14 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 #### 1. Upload File
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/files/upload" \
+curl -X POST "http://localhost:8001/api/v1/files/upload" \
   -F "file=@weapons.xml"
 ```
 
 #### 2. Parse File
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/files/parse" \
+curl -X POST "http://localhost:8001/api/v1/files/parse" \
   -H "Content-Type: application/json" \
   -d '{"file_path": "F:/StructForgeAI/data/uploads/weapons.xml"}'
 ```
@@ -684,7 +684,7 @@ curl -X POST "http://localhost:8000/api/v1/files/parse" \
 #### 3. Analyze Schema (AI Mode)
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/schemas/analyze" \
+curl -X POST "http://localhost:8001/api/v1/schemas/analyze" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {...},
@@ -695,7 +695,7 @@ curl -X POST "http://localhost:8000/api/v1/schemas/analyze" \
 #### 4. Natural Language Editing
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/schemas/infer-intent" \
+curl -X POST "http://localhost:8001/api/v1/schemas/infer-intent" \
   -H "Content-Type: application/json" \
   -d '{
     "instruction": "Copy this imperial sword, but reduce weight to 2.5 and increase range by 10%",

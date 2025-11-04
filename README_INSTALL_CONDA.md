@@ -63,8 +63,8 @@ cd frontend
 3. ✅ 自动打开浏览器访问服务
 
 **服务地址**：
-- 后端API: http://localhost:8000
-- API文档: http://localhost:8000/docs
+- 后端API: http://localhost:8001
+- API文档: http://localhost:8001/docs
 - 前端界面: http://localhost:5173
 
 ### 单独启动
@@ -201,7 +201,7 @@ npm config set registry https://registry.npmmirror.com
 1. 查找占用进程：
    ```powershell
    # 查找8000端口
-   netstat -ano | findstr :8000
+   netstat -ano | findstr :8001
    
    # 查找5173端口
    netstat -ano | findstr :5173

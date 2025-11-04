@@ -2,21 +2,63 @@
   position: relative;
 }
 
-.workflow-node.selected {
-  filter: drop-shadow(0 0 8px rgba(24, 144, 255, 0.3));
-}
+/* 选中效果通过内联样式处理 */
 
-.workflow-node .ant-card {
+.workflow-node-card {
   cursor: grab;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.workflow-node .ant-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.workflow-node-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
 }
 
-.workflow-node .ant-card:active {
+.workflow-node-card:active {
   cursor: grabbing;
+}
+
+/* 未配置节点样式 */
+.workflow-node.unconfigured .workflow-node-card {
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.workflow-node.unconfigured .workflow-node-card:hover {
+  transform: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+}
+
+/* 连接点样式 - n8n风格 */
+.workflow-handle {
+  opacity: 1 !important;
+  transition: all 0.2s ease;
+}
+
+.workflow-handle:hover {
+  background: #1890ff !important;
+  transform: scale(1.3);
+}
+
+/* 输出连接点旁边的 "+" 按钮效果 */
+.workflow-node:hover .workflow-handle[data-handlepos="right"]::after {
+  content: '+';
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 

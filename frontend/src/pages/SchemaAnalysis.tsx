@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Card,
   Form,
-  Input,
   Button,
   Switch,
   Typography,
@@ -10,13 +9,17 @@ import {
   Descriptions,
   Space,
   Divider,
+  Tabs,
+  Table,
+  Tag,
 } from 'antd'
 import { schemaApi } from '@/services/api'
 import { useAppStore } from '@/store/useAppStore'
-import type { SchemaAnalysisResult } from '@/types'
+import type { SchemaAnalysisResult, SchemaField } from '@/types'
+import DataEditor from '@/components/DataEditor'
+import RelationshipGraph from '@/components/RelationshipGraph'
 
 const { Title, Paragraph } = Typography
-const { TextArea } = Input
 
 const SchemaAnalysis = () => {
   const { currentFile, schemaResult, setSchemaResult } = useAppStore()
@@ -45,6 +48,69 @@ const SchemaAnalysis = () => {
     }
   }
 
+  // 获取Schema字段数据
+  const getSchemaFields = () => {
+    if (!schemaResult?.schema) return []
+    
+    const fields =
+      schemaResult.schema.properties ||
+      schemaResult.schema.fields ||
+      schemaResult.schema.columns ||
+      {}
+
+    return Object.entries(fields).map(([key, value]: [string, any]) => ({
+      key,
+      name: key,
+      type: value.type || typeof value,
+      description: value.description || '-',
+      path: value.path || '-',
+      position: value.position || '-',
+    }))
+  }
+
+  // 格式化Schema为JSON
+  const formatSchemaJson = () => {
+    if (!schemaResult) return ''
+    return JSON.stringify(schemaResult.schema, null, 2)
+  }
+
+  // 格式化数据为JSON
+  const formatDataJson = () => {
+    if (!currentFile) return ''
+    return JSON.stringify(currentFile.data, null, 2)
+  }
+
+  const schemaFields = getSchemaFields()
+  const fieldsColumns = [
+    {
+      title: '字段名',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type: string) => <Tag color="blue">{type}</Tag>,
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+    },
+    {
+      title: '路径',
+      dataIndex: 'path',
+      key: 'path',
+      ellipsis: true,
+    },
+    {
+      title: '位置',
+      dataIndex: 'position',
+      key: 'position',
+    },
+  ]
+
   return (
     <div>
       <Title level={2}>Schema分析</Title>
@@ -52,7 +118,7 @@ const SchemaAnalysis = () => {
         <Card>
           <Form
             form={form}
-            layout="vertical"
+            layout="inline"
             onFinish={handleAnalyze}
             initialValues={{ useAI: true }}
           >
@@ -73,33 +139,72 @@ const SchemaAnalysis = () => {
 
         {schemaResult && (
           <Card title="分析结果">
-            <Descriptions column={1} bordered>
-              <Descriptions.Item label="Schema类型">
-                {schemaResult.schema.type || 'object'}
-              </Descriptions.Item>
-              <Descriptions.Item label="字段数量">
-                {Object.keys(
-                  schemaResult.schema.properties ||
-                    schemaResult.schema.fields ||
-                    schemaResult.schema.columns ||
-                    {}
-                ).length}
-              </Descriptions.Item>
-            </Descriptions>
-
-            <Divider>关系图谱</Divider>
-            {schemaResult.relationships?.references && (
-              <div>
-                <Paragraph strong>引用关系:</Paragraph>
-                <ul>
-                  {schemaResult.relationships.references.map((rel, idx) => (
-                    <li key={idx}>
-                      {rel.from} → {rel.to} ({rel.type})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <Tabs
+              defaultActiveKey="overview"
+              items={[
+                {
+                  key: 'overview',
+                  label: '概览',
+                  children: (
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Descriptions column={2} bordered>
+                        <Descriptions.Item label="Schema类型">
+                          {schemaResult.schema.type || 'object'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="字段数量">
+                          {schemaFields.length}
+                        </Descriptions.Item>
+                      </Descriptions>
+                      {schemaResult.relationships &&
+                        schemaResult.relationships.length > 0 && (
+                          <>
+                            <Divider>关系图谱</Divider>
+                            <RelationshipGraph
+                              relationships={schemaResult.relationships}
+                              height="400px"
+                            />
+                          </>
+                        )}
+                    </Space>
+                  ),
+                },
+                {
+                  key: 'fields',
+                  label: '字段列表',
+                  children: (
+                    <Table
+                      columns={fieldsColumns}
+                      dataSource={schemaFields}
+                      pagination={{ pageSize: 10 }}
+                    />
+                  ),
+                },
+                {
+                  key: 'schema',
+                  label: 'Schema JSON',
+                  children: (
+                    <DataEditor
+                      value={formatSchemaJson()}
+                      language="json"
+                      readOnly
+                      height="500px"
+                    />
+                  ),
+                },
+                {
+                  key: 'data',
+                  label: '数据预览',
+                  children: (
+                    <DataEditor
+                      value={formatDataJson()}
+                      language="json"
+                      readOnly
+                      height="500px"
+                    />
+                  ),
+                },
+              ]}
+            />
           </Card>
         )}
 

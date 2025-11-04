@@ -67,6 +67,27 @@ const FileManagement = () => {
     }
   }
 
+  const formatFileSize = (size: number) => {
+    if (size < 1024) return `${size} B`
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`
+    return `${(size / (1024 * 1024)).toFixed(2)} MB`
+  }
+
+  const getFileType = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase()
+    const typeMap: Record<string, string> = {
+      xml: 'XML',
+      json: 'JSON',
+      yaml: 'YAML',
+      yml: 'YAML',
+      csv: 'CSV',
+      tsv: 'TSV',
+      xlsx: 'Excel',
+      xls: 'Excel',
+    }
+    return typeMap[ext || ''] || 'Unknown'
+  }
+
   const columns = [
     {
       title: '文件名',
@@ -80,14 +101,19 @@ const FileManagement = () => {
       ),
     },
     {
+      title: '类型',
+      dataIndex: 'filename',
+      key: 'type',
+      render: (filename: string) => (
+        <Tag color="blue">{getFileType(filename)}</Tag>
+      ),
+    },
+    {
       title: '大小',
       dataIndex: 'size',
       key: 'size',
-      render: (size: number) => {
-        if (size < 1024) return `${size} B`
-        if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`
-        return `${(size / (1024 * 1024)).toFixed(2)} MB`
-      },
+      render: (size: number) => formatFileSize(size),
+      sorter: (a: UploadedFile, b: UploadedFile) => a.size - b.size,
     },
     {
       title: '路径',
@@ -101,7 +127,7 @@ const FileManagement = () => {
       render: (_: any, record: UploadedFile) => (
         <Space>
           <Button
-            type="link"
+            type="primary"
             size="small"
             onClick={() => handleParse(record)}
             loading={loading}

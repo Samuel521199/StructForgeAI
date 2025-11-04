@@ -71,7 +71,7 @@ echo ====================================
 echo Frontend Service
 echo ====================================
 echo URL: http://localhost:5173
-echo Backend: http://localhost:8000
+echo Backend: http://localhost:8001
 echo.
 echo Press Ctrl+C to stop
 echo ====================================

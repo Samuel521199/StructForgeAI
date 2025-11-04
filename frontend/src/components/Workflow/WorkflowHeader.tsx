@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Space, Switch, Button, Dropdown, Typography } from 'antd'
+import { Space, Switch, Button, Dropdown, Typography, Input } from 'antd'
 import {
   ShareAltOutlined,
   SaveOutlined,
@@ -16,6 +16,7 @@ interface WorkflowHeaderProps {
   workflowName: string
   isActive: boolean
   onActiveChange: (active: boolean) => void
+  onNameChange?: (name: string) => void
   onSave?: () => void
   onShare?: () => void
 }
@@ -24,6 +25,7 @@ const WorkflowHeader = ({
   workflowName,
   isActive,
   onActiveChange,
+  onNameChange,
   onSave,
   onShare,
 }: WorkflowHeaderProps) => {
@@ -56,9 +58,19 @@ const WorkflowHeader = ({
       <div className="workflow-header-left">
         <Space size={16}>
           <div>
-            <Text strong style={{ fontSize: 16 }}>
-              {workflowName}
-            </Text>
+            {onNameChange ? (
+              <Input
+                value={workflowName}
+                onChange={(e) => onNameChange(e.target.value)}
+                style={{ width: 200, fontSize: 16, fontWeight: 600 }}
+                bordered={false}
+                placeholder="工作流名称"
+              />
+            ) : (
+              <Text strong style={{ fontSize: 16 }}>
+                {workflowName}
+              </Text>
+            )}
             <Button type="link" size="small" style={{ marginLeft: 8 }}>
               + 添加标签
             </Button>

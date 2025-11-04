@@ -1,15 +1,17 @@
 import axios from 'axios'
 import type {
-  ApiResponse,
   UploadedFile,
   ParsedFile,
   SchemaAnalysisResult,
   IntentInferenceResult,
   WorkflowExecution,
+  WorkflowInfo,
   AIModel,
 } from '@/types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+// 开发环境使用代理，生产环境使用完整URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV ? '/api/v1' : 'http://localhost:8001/api/v1')
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -75,7 +77,7 @@ export const fileApi = {
       { data, output_format: format, filename },
       { responseType: 'blob' }
     )
-    return response
+    return response as unknown as Blob
   },
 }
 
@@ -155,9 +157,41 @@ export const workflowApi = {
     })
   },
 
-  // 列出可用工作流
-  list: async (): Promise<{ workflows: string[] }> => {
+  // 列出可用工作流（返回详细信息）
+  list: async (): Promise<{ workflows: WorkflowInfo[] }> => {
     return api.get('/workflows/list')
+  },
+
+  // 保存工作流定义
+  save: async (
+    workflowId: string,
+    workflowData: { nodes: any[]; edges: any[]; name?: string; description?: string; is_active?: boolean }
+  ): Promise<{ workflow_id: string; message: string }> => {
+    return api.post(`/workflows/save/${workflowId}`, workflowData)
+  },
+
+  // 加载工作流定义
+  load: async (workflowId: string): Promise<{ nodes: any[]; edges: any[]; name?: string; description?: string; is_active?: boolean }> => {
+    return api.get(`/workflows/load/${workflowId}`)
+  },
+
+  // 删除工作流
+  delete: async (workflowId: string): Promise<{ workflow_id: string; message: string }> => {
+    console.log('API调用删除工作流:', workflowId)
+    try {
+      const response = await api.delete(`/workflows/${workflowId}`)
+      console.log('删除工作流响应:', response.data)
+      return response.data
+    } catch (error: any) {
+      console.error('删除工作流API错误:', error)
+      console.error('错误详情:', error?.response?.data)
+      throw error
+    }
+  },
+
+  // 切换工作流激活状态
+  toggleActive: async (workflowId: string, isActive: boolean): Promise<{ workflow_id: string; is_active: boolean; message: string }> => {
+    return api.patch(`/workflows/${workflowId}/active`, { is_active: isActive })
   },
 }
 

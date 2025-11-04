@@ -36,7 +36,7 @@ export interface SchemaField {
 
 export interface SchemaAnalysisResult {
   schema: Schema
-  relationships: Relationship[]
+  relationships?: Relationship[]
   base_schema?: Schema
 }
 
@@ -65,6 +65,16 @@ export interface IntentInferenceResult {
 }
 
 // Workflow Types
+export interface WorkflowInfo {
+  workflow_id: string
+  name: string
+  description?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  type: 'default' | 'custom'
+}
+
 export interface WorkflowExecution {
   execution_id: string
   workflow_id: string
