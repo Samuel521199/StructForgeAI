@@ -3,7 +3,8 @@
 """
 from pathlib import Path
 
-BASE_DIR = Path("F:/StructForgeAI")
+# 自动检测项目根目录（脚本所在目录）
+BASE_DIR = Path(__file__).parent.resolve()
 
 directories = [
     BASE_DIR / "data" / "uploads",
@@ -17,10 +18,10 @@ directories = [
     BASE_DIR / "tests",
 ]
 
-print("正在创建目录结构...")
+print("Creating directory structure...")
 for directory in directories:
     directory.mkdir(parents=True, exist_ok=True)
-    print(f"✓ {directory}")
+    print(f"[OK] {directory}")
 
 # 创建.gitkeep文件
 gitkeep_files = [
@@ -30,8 +31,8 @@ gitkeep_files = [
 
 for gitkeep in gitkeep_files:
     gitkeep.touch()
-    print(f"✓ {gitkeep}")
+    print(f"[OK] {gitkeep}")
 
-print("\n目录结构创建完成！")
-print(f"项目根目录: {BASE_DIR}")
+print("\nDirectory structure created!")
+print(f"Project root: {BASE_DIR}")
 

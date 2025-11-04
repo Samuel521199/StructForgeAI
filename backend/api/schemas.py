@@ -6,11 +6,25 @@ from typing import Dict, Any, Optional
 
 from schema_learner.ai_learner import AISchemaLearner
 from schema_learner.rule_learner import RuleBasedSchemaLearner
-from ai_integration.vector_db import VectorDB
 from core.logging_config import logger
 
 router = APIRouter()
-vector_db = VectorDB()
+
+# Lazy initialization of VectorDB
+_vector_db = None
+
+def get_vector_db():
+    """延迟初始化VectorDB（可选功能）"""
+    global _vector_db
+    if _vector_db is None:
+        try:
+            from ai_integration.vector_db import VectorDB
+            _vector_db = VectorDB()
+        except Exception as e:
+            logger.warning(f"VectorDB initialization failed: {e}")
+            logger.warning("VectorDB features (similar schema search) will be unavailable")
+            _vector_db = None
+    return _vector_db
 
 
 @router.post("/analyze")
@@ -69,12 +83,20 @@ async def find_similar_schemas(
 ):
     """查找相似的Schema"""
     try:
-        results = vector_db.search_similar(schema, top_k)
+        db = get_vector_db()
+        if db is None:
+            raise HTTPException(
+                status_code=503,
+                detail="VectorDB is not available. Schema similarity search is disabled."
+            )
+        results = db.search_similar(schema, top_k)
         return {
             "similar_schemas": results
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"相似Schema查找失败: {e}")
+        logger.error(f"Similar schema search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -85,12 +107,20 @@ async def save_schema(
 ):
     """保存Schema到向量库"""
     try:
-        schema_id = vector_db.add_schema(schema, metadata)
+        db = get_vector_db()
+        if db is None:
+            raise HTTPException(
+                status_code=503,
+                detail="VectorDB is not available. Schema saving is disabled."
+            )
+        schema_id = db.add_schema(schema, metadata)
         return {
             "schema_id": schema_id,
-            "message": "Schema已保存"
+            "message": "Schema saved successfully"
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Schema保存失败: {e}")
+        logger.error(f"Schema save failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

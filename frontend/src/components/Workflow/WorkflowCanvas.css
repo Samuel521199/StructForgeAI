@@ -1,0 +1,39 @@
+.workflow-canvas-container {
+  width: 100%;
+  height: calc(100vh - 200px);
+  position: relative;
+  background: #fafafa;
+}
+
+.workflow-canvas-container .react-flow {
+  background: #fafafa;
+}
+
+.workflow-canvas-container .react-flow__node {
+  cursor: grab;
+}
+
+.workflow-canvas-container .react-flow__node:active {
+  cursor: grabbing;
+}
+
+.workflow-canvas-container .react-flow__handle {
+  border: 2px solid #fff;
+  transition: all 0.2s;
+}
+
+.workflow-canvas-container .react-flow__handle:hover {
+  transform: scale(1.2);
+  border-color: #1890ff;
+}
+
+.workflow-canvas-container .react-flow__edge-path {
+  stroke-width: 2;
+  transition: all 0.2s;
+}
+
+.workflow-canvas-container .react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3;
+  stroke: #1890ff;
+}
+

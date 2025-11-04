@@ -10,7 +10,8 @@ import {
   Tag,
   Descriptions,
 } from 'antd'
-import { PlayCircleOutlined } from '@ant-design/icons'
+import { PlayCircleOutlined, EditOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import { workflowApi } from '@/services/api'
 import type { WorkflowExecution } from '@/types'
 
@@ -18,6 +19,7 @@ const { Title } = Typography
 const { Option } = Select
 
 const Workflow = () => {
+  const navigate = useNavigate()
   const [workflows, setWorkflows] = useState<string[]>([])
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>('')
   const [executionHistory, setExecutionHistory] = useState<WorkflowExecution[]>(
@@ -110,7 +112,16 @@ const Workflow = () => {
 
   return (
     <div>
-      <Title level={2}>工作流</Title>
+      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
+        <Title level={2} style={{ margin: 0 }}>工作流</Title>
+        <Button
+          type="primary"
+          icon={<EditOutlined />}
+          onClick={() => navigate('/workflow/editor')}
+        >
+          打开编辑器
+        </Button>
+      </Space>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Card title="执行工作流">
           <Space>

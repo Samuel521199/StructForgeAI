@@ -1,0 +1,22 @@
+.workflow-node {
+  position: relative;
+}
+
+.workflow-node.selected {
+  filter: drop-shadow(0 0 8px rgba(24, 144, 255, 0.3));
+}
+
+.workflow-node .ant-card {
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.workflow-node .ant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.workflow-node .ant-card:active {
+  cursor: grabbing;
+}
+

@@ -3,6 +3,19 @@
 """
 from pydantic_settings import BaseSettings
 from typing import List
+from pathlib import Path
+
+
+def get_project_root() -> Path:
+    """自动检测项目根目录"""
+    # 从backend目录向上查找项目根目录
+    current_file = Path(__file__).resolve()
+    backend_dir = current_file.parent.parent  # backend目录
+    project_root = backend_dir.parent  # 项目根目录
+    return project_root
+
+
+PROJECT_ROOT = get_project_root()
 
 
 class Settings(BaseSettings):
@@ -21,7 +34,7 @@ class Settings(BaseSettings):
     ]
     
     # 数据库配置
-    DATABASE_URL: str = "sqlite:///F:/StructForgeAI/data/structforge.db"
+    DATABASE_URL: str = f"sqlite:///{PROJECT_ROOT / 'data' / 'structforge.db'}"
     
     # AI模型配置
     AI_MODEL_PROVIDER: str = "ollama"  # ollama, openai, local
@@ -31,21 +44,21 @@ class Settings(BaseSettings):
     AI_MAX_TOKENS: int = 2048
     
     # 向量数据库配置
-    VECTOR_DB_TYPE: str = "faiss"  # faiss, chromadb
-    VECTOR_DB_PATH: str = "F:/StructForgeAI/data/vector_db"
+    VECTOR_DB_TYPE: str = "chromadb"  # faiss, chromadb (chromadb is more stable on Windows)
+    VECTOR_DB_PATH: str = str(PROJECT_ROOT / "data" / "vector_db")
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     
     # 文件存储配置
-    UPLOAD_DIR: str = "F:/StructForgeAI/data/uploads"
-    EXPORT_DIR: str = "F:/StructForgeAI/data/exports"
-    TEMPLATE_DIR: str = "F:/StructForgeAI/templates"
+    UPLOAD_DIR: str = str(PROJECT_ROOT / "data" / "uploads")
+    EXPORT_DIR: str = str(PROJECT_ROOT / "data" / "exports")
+    TEMPLATE_DIR: str = str(PROJECT_ROOT / "templates")
     
     # 工作流配置
     WORKFLOW_ENGINE: str = "prefect"  # prefect, custom
     
     # 日志配置
     LOG_LEVEL: str = "INFO"
-    LOG_FILE: str = "F:/StructForgeAI/logs/app.log"
+    LOG_FILE: str = str(PROJECT_ROOT / "logs" / "app.log")
     
     class Config:
         env_file = ".env"

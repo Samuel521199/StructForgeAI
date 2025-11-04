@@ -80,6 +80,31 @@
 
 ## 🚀 快速开始
 
+### ⚡ 一键安装（推荐 - Conda版本）
+
+**Windows用户**：
+
+1. **安装前置条件**：
+   - [Anaconda/Miniconda](https://www.anaconda.com/download)
+   - [Node.js 18+](https://nodejs.org/)
+
+2. **一键安装**：
+   ```powershell
+   # 双击运行或命令行执行
+   .\install_all_conda.bat
+   ```
+
+3. **一键启动**：
+   ```powershell
+   .\start_all_conda.bat
+   ```
+
+详细说明请查看：[README_INSTALL_CONDA.md](README_INSTALL_CONDA.md)
+
+---
+
+## 🚀 快速开始（其他方式）
+
 ### 步骤1：克隆仓库
 
 ```bash

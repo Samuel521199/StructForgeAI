@@ -1,0 +1,48 @@
+.workflow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.workflow-header-left {
+  flex: 1;
+}
+
+.workflow-header-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.workflow-header-tabs .tab {
+  padding: 6px 16px;
+  cursor: pointer;
+  color: #8c8c8c;
+  font-size: 14px;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.2s;
+}
+
+.workflow-header-tabs .tab:hover {
+  color: #1890ff;
+  background: #f0f7ff;
+}
+
+.workflow-header-tabs .tab.active {
+  color: #1890ff;
+  font-weight: 500;
+  border-bottom: 2px solid #1890ff;
+}
+
+.workflow-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.workflow-header .saved {
+  color: #52c41a;
+}
+

@@ -22,40 +22,49 @@ class VectorDB:
         self.embedding_client = EmbeddingClient()
         
         if self.db_type == "faiss":
-            self.db = self._init_faiss()
+            try:
+                self.db = self._init_faiss()
+            except (ImportError, ModuleNotFoundError) as e:
+                logger.warning(f"FAISS not available: {e}")
+                logger.warning("Falling back to ChromaDB. To use FAISS, install it with:")
+                logger.warning("  conda install -c conda-forge faiss-cpu")
+                logger.warning("  or")
+                logger.warning("  pip install faiss-cpu")
+                logger.info("Switching to ChromaDB...")
+                self.db_type = "chromadb"
+                self.db = self._init_chromadb()
         elif self.db_type == "chromadb":
             self.db = self._init_chromadb()
         else:
-            raise ValueError(f"不支持的向量数据库类型: {self.db_type}")
+            raise ValueError(f"Unsupported vector database type: {self.db_type}")
     
     def _init_faiss(self):
         """初始化FAISS数据库"""
         try:
             import faiss
             import pickle
-            
-            index_path = self.db_path / "faiss.index"
-            metadata_path = self.db_path / "metadata.pkl"
-            
-            dimension = 384  # sentence-transformers默认维度
-            index = faiss.IndexFlatL2(dimension)
-            
-            if index_path.exists():
-                index = faiss.read_index(str(index_path))
-                with open(metadata_path, 'rb') as f:
-                    metadata = pickle.load(f)
-            else:
-                metadata = []
-            
-            return {
-                "index": index,
-                "metadata": metadata,
-                "index_path": index_path,
-                "metadata_path": metadata_path
-            }
-        except Exception as e:
-            logger.error(f"FAISS初始化失败: {e}")
-            raise
+        except ImportError:
+            raise ImportError("faiss module not found. Install with: conda install -c conda-forge faiss-cpu or pip install faiss-cpu")
+        
+        index_path = self.db_path / "faiss.index"
+        metadata_path = self.db_path / "metadata.pkl"
+        
+        dimension = 384  # sentence-transformers default dimension
+        index = faiss.IndexFlatL2(dimension)
+        
+        if index_path.exists():
+            index = faiss.read_index(str(index_path))
+            with open(metadata_path, 'rb') as f:
+                metadata = pickle.load(f)
+        else:
+            metadata = []
+        
+        return {
+            "index": index,
+            "metadata": metadata,
+            "index_path": index_path,
+            "metadata_path": metadata_path
+        }
     
     def _init_chromadb(self):
         """初始化ChromaDB数据库"""

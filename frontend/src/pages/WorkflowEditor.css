@@ -1,0 +1,21 @@
+.workflow-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #fff;
+}
+
+.workflow-editor-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.workflow-editor-footer {
+  padding: 16px 24px;
+  text-align: center;
+  border-top: 1px solid #e8e8e8;
+  background: #fff;
+  z-index: 10;
+}
+

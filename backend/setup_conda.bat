@@ -95,6 +95,8 @@ echo   2. 切换到目录: cd "%SCRIPT_DIR%"
 echo   3. 启动服务: python main.py
 echo.
 echo 或者直接运行: start_conda.bat
+echo.
+echo 或使用一键启动: ..\start_all_conda.bat
 echo ====================================
 pause
 
