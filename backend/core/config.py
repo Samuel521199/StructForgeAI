@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     
     # 工作流配置
     WORKFLOW_ENGINE: str = "prefect"  # prefect, custom
+    WORKFLOW_STORAGE_TYPE: str = "json"  # memory, json, sqlite, postgresql, mysql
+    WORKFLOW_STORAGE_PATH: str = ""  # 可选：指定存储路径（JSON文件或SQLite数据库路径）
     
     # 日志配置
     LOG_LEVEL: str = "INFO"

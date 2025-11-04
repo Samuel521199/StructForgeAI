@@ -253,9 +253,11 @@ const WorkflowEditor = () => {
   const loadWorkflow = async (id: string) => {
     try {
       setLoading(true)
+      console.log('WorkflowEditor: 开始加载工作流:', id)
+      
       const workflow = await workflowApi.load(id)
       
-      console.log('WorkflowEditor: 加载工作流数据:', {
+      console.log('WorkflowEditor: 加载工作流数据成功:', {
         id,
         nodesCount: workflow.nodes?.length || 0,
         edgesCount: workflow.edges?.length || 0,
@@ -300,7 +302,28 @@ const WorkflowEditor = () => {
       setInitialized(true)
       message.success('工作流加载成功')
     } catch (error: any) {
-      console.error('加载工作流失败:', error)
+      console.error('WorkflowEditor: 加载工作流失败:', error)
+      
+      // 如果是404错误且刚刚保存了该工作流，可能是时序问题，不显示错误
+      if (error.message?.includes('404') || error.message?.includes('不存在')) {
+        if (justSavedRef.current === id) {
+          console.log('WorkflowEditor: 工作流刚刚保存，可能是时序问题，稍后重试')
+          // 清除标记，稍后重试
+          justSavedRef.current = null
+          // 延迟重试
+          setTimeout(() => {
+            loadWorkflow(id).catch(err => {
+              console.error('WorkflowEditor: 重试加载工作流失败:', err)
+              message.error(`加载工作流失败: ${err.message}`)
+              setNodes([])
+              setEdges([])
+              setInitialized(true)
+            })
+          }, 500)
+          return
+        }
+      }
+      
       message.error(`加载工作流失败: ${error.message}`)
       // 加载失败时显示空节点，让用户可以重新创建
       setNodes([])
@@ -400,6 +423,11 @@ const WorkflowEditor = () => {
       const id = workflowId || `custom_${Date.now()}`
       console.log('WorkflowEditor: 保存工作流', { workflowId, newId: id, nodesCount: nodes.length })
       
+      // 先标记保存操作，防止URL更新后立即加载
+      if (!workflowId) {
+        justSavedRef.current = id
+      }
+      
       await workflowApi.save(id, {
         nodes,
         edges,
@@ -407,21 +435,27 @@ const WorkflowEditor = () => {
         description: workflowDescription || '自定义工作流',
         is_active: isActive,
       })
+      
+      console.log('WorkflowEditor: 工作流保存成功，ID:', id)
       message.success('工作流已保存')
       
-      // 如果是新工作流，更新URL（使用setSearchParams确保React Router正确更新）
+      // 如果是新工作流，保存成功后再更新URL
       if (!workflowId) {
         console.log('WorkflowEditor: 新工作流保存成功，更新URL为:', id)
-        // 标记刚刚保存，避免URL更新后重新加载
-        justSavedRef.current = id
+        // 确保保存完成后再更新URL，并保持标记
         setSearchParams({ id }, { replace: true })
       }
     } catch (error: any) {
+      console.error('WorkflowEditor: 保存工作流失败', error)
+      // 如果保存失败，清除标记
+      if (!workflowId) {
+        justSavedRef.current = null
+      }
       message.error(`保存失败: ${error.message}`)
     } finally {
       setLoading(false)
     }
-  }, [nodes, edges, workflowName, isActive, workflowId, setSearchParams])
+  }, [nodes, edges, workflowName, workflowDescription, isActive, workflowId, setSearchParams])
 
   const handleShare = useCallback(() => {
     message.info('分享功能开发中')

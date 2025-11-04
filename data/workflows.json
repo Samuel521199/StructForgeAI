@@ -1,0 +1,34 @@
+{
+  "workflows": {
+    "custom_1762257900558": {
+      "workflow_id": "custom_1762257900558",
+      "name": "xml工作流",
+      "description": "xml工作流",
+      "nodes": [
+        {
+          "id": "node_1762257883433",
+          "type": "default",
+          "position": {
+            "x": 653,
+            "y": 432.5
+          },
+          "data": {
+            "type": "parse_file",
+            "label": "解析文件",
+            "description": "读取并解析配置文件",
+            "config": {
+              "file_path": "F:\\StructForgeAI\\data\\uploads\\SkiOL_shields.xml"
+            }
+          }
+        }
+      ],
+      "edges": [],
+      "is_active": false,
+      "created_at": "2025-11-04T20:05:00.566682",
+      "updated_at": "2025-11-04T20:05:00.566682",
+      "type": "custom"
+    }
+  },
+  "hidden_workflows": [],
+  "updated_at": "2025-11-04T20:05:00.566682"
+}

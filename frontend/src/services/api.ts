@@ -37,8 +37,54 @@ api.interceptors.response.use(
     return response.data
   },
   (error) => {
-    const message = error.response?.data?.detail || error.message || '请求失败'
-    console.error('API Error:', message)
+    // 处理 FastAPI 验证错误 (422)
+    if (error.response?.status === 422) {
+      const detail = error.response.data?.detail
+      let message = '请求参数验证失败'
+      
+      if (Array.isArray(detail)) {
+        // FastAPI 验证错误通常返回数组
+        const errors = detail.map((err: any) => {
+          const field = err.loc?.join('.') || '未知字段'
+          const msg = err.msg || '验证失败'
+          return `${field}: ${msg}`
+        }).join('; ')
+        message = `参数验证失败: ${errors}`
+      } else if (typeof detail === 'string') {
+        message = detail
+      } else if (detail) {
+        message = JSON.stringify(detail)
+      }
+      
+      console.error('API Validation Error:', message, detail)
+      return Promise.reject(new Error(message))
+    }
+    
+    // 处理其他错误（包括 404）
+    let message = '请求失败'
+    
+    // 处理 404 错误
+    if (error.response?.status === 404) {
+      // 优先使用后端返回的详细错误信息
+      if (error.response?.data?.detail) {
+        message = error.response.data.detail
+      } else {
+        // 如果没有 detail，说明可能是路由不存在
+        message = `路由不存在: ${error.config?.url || '未知'}`
+      }
+    } else {
+      // 其他错误
+      message = error.response?.data?.detail || error.message || '请求失败'
+    }
+    
+    console.error('API Error:', {
+      status: error.response?.status,
+      message: message,
+      detail: error.response?.data,
+      url: error.config?.url,
+      params: error.config?.params,
+      fullResponse: error.response
+    })
     return Promise.reject(new Error(message))
   }
 )
@@ -58,7 +104,11 @@ export const fileApi = {
 
   // 解析文件
   parse: async (filePath: string): Promise<ParsedFile> => {
-    return api.post('/files/parse', { file_path: filePath })
+    // 调试：打印请求数据
+    const requestData = { file_path: filePath }
+    console.log('发送解析请求，数据:', requestData)
+    // 响应拦截器已经返回了 response.data，所以这里直接返回
+    return api.post('/files/parse', requestData) as Promise<ParsedFile>
   },
 
   // 获取文件列表
@@ -78,6 +128,11 @@ export const fileApi = {
       { responseType: 'blob' }
     )
     return response as unknown as Blob
+  },
+
+  // 获取文件内容
+  getContent: async (filePath: string): Promise<{ content: string; file_path: string; size: number }> => {
+    return api.get('/files/content', { params: { file_path: filePath } })
   },
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Drawer, Form, Input, Switch, Select, Tabs, Table, Button, Space, Typography, Divider, message, Spin, Descriptions } from 'antd'
+import { Drawer, Form, Input, Switch, Select, Tabs, Table, Button, Space, Typography, Divider, message, Spin, Descriptions, Tag } from 'antd'
 import { 
   CloseOutlined, 
   SaveOutlined, 
@@ -15,6 +15,89 @@ import type { ParsedFile } from '@/types'
 import './NodeDetailPanel.css'
 
 const { Text, Title } = Typography
+
+// 文件内容预览组件
+const FileContentPreview = ({ filePath }: { filePath: string }) => {
+  const [content, setContent] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!filePath) return
+    
+    const loadFileContent = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        console.log('开始加载文件内容，文件路径:', filePath)
+        // 使用统一的 API 客户端读取文件内容
+        const data = await fileApi.getContent(filePath)
+        console.log('文件内容加载成功，长度:', data.content?.length || 0)
+        setContent(data.content || '')
+      } catch (err: any) {
+        // 提取详细的错误信息
+        let errorMsg = '无法读取文件内容'
+        if (err.message) {
+          errorMsg = err.message
+        } else if (err.response?.data?.detail) {
+          errorMsg = err.response.data.detail
+        } else if (typeof err === 'string') {
+          errorMsg = err
+        }
+        setError(errorMsg)
+        console.error('读取文件内容失败:', {
+          error: err,
+          filePath: filePath,
+          response: err.response,
+          message: err.message
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadFileContent()
+  }, [filePath])
+
+  if (loading) {
+    return <Spin size="small" tip="加载中..." />
+  }
+
+  if (error) {
+    return <Text type="danger" style={{ fontSize: '12px' }}>{error}</Text>
+  }
+
+  if (!content) {
+    return <Text type="secondary" style={{ fontSize: '12px' }}>暂无内容</Text>
+  }
+
+  // 限制显示内容长度（前5000字符）
+  const displayContent = content.length > 5000 ? content.substring(0, 5000) + '...' : content
+  const maxLines = 20
+
+  return (
+    <pre style={{
+      background: '#f5f5f5',
+      padding: '12px',
+      borderRadius: '4px',
+      overflow: 'auto',
+      maxHeight: `${maxLines * 1.5}em`,
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      lineHeight: '1.5',
+      margin: 0,
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word'
+    }}>
+      {displayContent}
+      {content.length > 5000 && (
+        <div style={{ marginTop: '8px', color: '#8c8c8c', fontSize: '10px' }}>
+          文件过长，仅显示前 5000 字符（共 {content.length} 字符）
+        </div>
+      )}
+    </pre>
+  )
+}
 
 interface NodeData {
   label: string
@@ -245,12 +328,41 @@ const NodeDetailPanel = ({
         setExecutionError(null)
         message.loading({ content: '正在解析文件...', key: 'execute' })
         
+        // 调试：打印文件路径
+        console.log('准备解析文件，路径:', filePath)
+        
         // 调用文件解析API
         const result = await fileApi.parse(filePath)
+        console.log('文件解析成功，结果:', result)
         setExecutionResult(result)
         message.success({ content: '文件解析成功', key: 'execute' })
       } catch (error: any) {
-        const errorMsg = error.message || '文件解析失败'
+        // 提取错误信息
+        let errorMsg = '文件解析失败'
+        if (error) {
+          if (typeof error === 'string') {
+            errorMsg = error
+          } else if (error.message) {
+            errorMsg = error.message
+          } else if (error.response?.data?.detail) {
+            const detail = error.response.data.detail
+            if (Array.isArray(detail)) {
+              // FastAPI 验证错误
+              errorMsg = detail.map((err: any) => {
+                const field = err.loc?.join('.') || '未知字段'
+                const msg = err.msg || '验证失败'
+                return `${field}: ${msg}`
+              }).join('; ')
+            } else {
+              errorMsg = detail
+            }
+          } else if (error.response?.data?.message) {
+            errorMsg = error.response.data.message
+          } else if (typeof error === 'object') {
+            errorMsg = JSON.stringify(error)
+          }
+        }
+        console.error('文件解析错误:', error)
         setExecutionError(errorMsg)
         message.error({ content: errorMsg, key: 'execute' })
       } finally {
@@ -466,38 +578,134 @@ const NodeDetailPanel = ({
   const renderSchemaView = (schema: any) => {
     if (!schema) return <Text type="secondary">暂无数据</Text>
     
-    const renderSchemaItem = (key: string, value: any, level = 0): JSX.Element => {
-      const indent = level * 20
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        return (
-          <div key={key} style={{ marginLeft: indent }}>
-            <Text strong>{key}:</Text> {'{'}
-            <div style={{ marginLeft: 20 }}>
-              {Object.entries(value).map(([k, v]) => renderSchemaItem(k, v, level + 1))}
-            </div>
-            {'}'}
-          </div>
-        )
-      } else if (Array.isArray(value)) {
-        return (
-          <div key={key} style={{ marginLeft: indent }}>
-            <Text strong>{key}:</Text> [{value.length} items]
-          </div>
-        )
-      } else {
-        return (
-          <div key={key} style={{ marginLeft: indent }}>
-            <Text strong>{key}:</Text> <Text type="secondary">{String(value)}</Text>
-          </div>
-        )
+    // 扁平化 Schema 结构，显示完整路径（更紧凑的格式）
+    const flattenSchema = (obj: any, prefix = '', result: Array<{ path: string; type: string; info: string }> = []): Array<{ path: string; type: string; info: string }> => {
+      if (!obj || typeof obj !== 'object') {
+        return result
       }
+
+      // 处理 properties
+      if (obj.properties) {
+        Object.entries(obj.properties).forEach(([key, value]: [string, any]) => {
+          const fullPath = prefix ? `${prefix}.${key}` : key
+          
+          if (value.type === 'object' && value.properties) {
+            // 嵌套对象，只显示路径和类型，不递归显示子字段
+            result.push({ 
+              path: fullPath, 
+              type: 'object', 
+              info: `${Object.keys(value.properties || {}).length} 个字段` 
+            })
+            // 递归处理子字段
+            flattenSchema(value, fullPath, result)
+          } else if (value.type === 'array') {
+            // 数组类型
+            let arrayInfo = 'array'
+            if (value.items) {
+              if (value.items.type === 'object' && value.items.properties) {
+                arrayInfo = `array[object(${Object.keys(value.items.properties || {}).length} 个字段)]`
+                // 递归处理数组元素的 schema
+                flattenSchema(value.items, `${fullPath}[]`, result)
+              } else {
+                arrayInfo = `array[${value.items.type || 'unknown'}]`
+              }
+            }
+            result.push({ path: fullPath, type: 'array', info: arrayInfo })
+          } else {
+            // 基本类型
+            result.push({ 
+              path: fullPath, 
+              type: value.type || 'unknown', 
+              info: value.description || '-' 
+            })
+          }
+        })
+      } else {
+        // 直接处理对象
+        Object.entries(obj).forEach(([key, value]: [string, any]) => {
+          const fullPath = prefix ? `${prefix}.${key}` : key
+          
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            if (value.type === 'object' && value.properties) {
+              result.push({ 
+                path: fullPath, 
+                type: 'object', 
+                info: `${Object.keys(value.properties || {}).length} 个字段` 
+              })
+              flattenSchema(value, fullPath, result)
+            } else {
+              result.push({ path: fullPath, type: 'object', info: '-' })
+              flattenSchema(value, fullPath, result)
+            }
+          } else {
+            result.push({ path: fullPath, type: typeof value, info: '-' })
+          }
+        })
+      }
+      
+      return result
+    }
+
+    const flattened = flattenSchema(schema)
+    
+    if (flattened.length === 0) {
+      return <Text type="secondary">暂无 Schema 数据</Text>
     }
 
     return (
-      <div style={{ padding: '8px 0' }}>
-        {Object.entries(schema.properties || {}).map(([key, value]) => 
-          renderSchemaItem(key, value, 0)
-        )}
+      <div style={{ padding: '4px 0' }}>
+        <Table
+          dataSource={flattened}
+          columns={[
+            {
+              title: '字段路径',
+              dataIndex: 'path',
+              key: 'path',
+              width: '55%',
+              ellipsis: true,
+              render: (path: string) => (
+                <Text 
+                  code 
+                  style={{ 
+                    fontSize: '12px',
+                    whiteSpace: 'nowrap',
+                    fontFamily: 'monospace'
+                  }}
+                  title={path}
+                >
+                  {path}
+                </Text>
+              ),
+            },
+            {
+              title: '类型',
+              dataIndex: 'type',
+              key: 'type',
+              width: '15%',
+              render: (type: string) => (
+                <Tag color="blue" style={{ fontSize: '11px', margin: 0 }}>
+                  {type}
+                </Tag>
+              ),
+            },
+            {
+              title: '信息',
+              dataIndex: 'info',
+              key: 'info',
+              width: '30%',
+              ellipsis: true,
+              render: (info: string) => (
+                <Text type="secondary" style={{ fontSize: '11px' }}>
+                  {info}
+                </Text>
+              ),
+            },
+          ]}
+          pagination={false}
+          size="small"
+          scroll={{ y: 400, x: 'max-content' }}
+          style={{ fontSize: '12px' }}
+        />
       </div>
     )
   }
@@ -607,9 +815,11 @@ const NodeDetailPanel = ({
           </div>
           {isTrigger ? (
             <div style={{ padding: '24px' }}>
-              <div style={{ marginBottom: '16px', textAlign: 'center', color: '#8c8c8c' }}>
-                <Text>触发节点没有输入数据</Text>
-              </div>
+              {!executionResult && (
+                <div style={{ marginBottom: '16px', textAlign: 'center', color: '#8c8c8c' }}>
+                  <Text>触发节点没有输入数据</Text>
+                </div>
+              )}
               {inputData?.config && (
                 <div>
                   <Title level={5} style={{ marginBottom: '12px' }}>节点配置</Title>
@@ -627,20 +837,26 @@ const NodeDetailPanel = ({
                     </Descriptions.Item>
                   </Descriptions>
                   {executionResult && (
-                    <div style={{ marginTop: '16px', padding: '12px', background: '#f0f9ff', borderRadius: '4px', border: '1px solid #91d5ff' }}>
-                      <Title level={5} style={{ marginBottom: '8px', fontSize: '14px' }}>已加载文件</Title>
-                      <Descriptions column={1} size="small">
-                        <Descriptions.Item label="文件路径">
-                          <Text code>{executionResult.file_path}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="文件类型">
-                          <Text>{executionResult.file_path.split('.').pop()?.toUpperCase() || '未知'}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="数据项数">
-                          <Text>{executionResult.data ? (Array.isArray(executionResult.data) ? executionResult.data.length : Object.keys(executionResult.data).length) : 0}</Text>
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </div>
+                    <>
+                      <div style={{ marginTop: '16px', padding: '12px', background: '#f0f9ff', borderRadius: '4px', border: '1px solid #91d5ff' }}>
+                        <Title level={5} style={{ marginBottom: '8px', fontSize: '14px' }}>已加载文件</Title>
+                        <Descriptions column={1} size="small">
+                          <Descriptions.Item label="文件路径">
+                            <Text code>{executionResult.file_path}</Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="文件类型">
+                            <Text>{executionResult.file_path.split('.').pop()?.toUpperCase() || '未知'}</Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="数据项数">
+                            <Text>{executionResult.data ? (Array.isArray(executionResult.data) ? executionResult.data.length : Object.keys(executionResult.data).length) : 0}</Text>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </div>
+                      <div style={{ marginTop: '16px' }}>
+                        <Title level={5} style={{ marginBottom: '8px', fontSize: '14px' }}>源文件内容</Title>
+                        <FileContentPreview filePath={executionResult.file_path} />
+                      </div>
+                    </>
                   )}
                 </div>
               )}
