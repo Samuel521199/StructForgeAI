@@ -8,10 +8,15 @@ import {
   TableOutlined,
   CodeOutlined,
   FolderOpenOutlined,
+  FileSyncOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons'
 import type { NodeType } from './WorkflowNode'
 import { fileApi } from '@/services/api'
 import type { ParsedFile } from '@/types'
+import { getNodeExecutor } from './NodeExecutors'
+import { getNodeConfigComponent } from './NodeConfigs'
+import { NodeValidationView } from './NodeValidationViews'
 import './NodeDetailPanel.css'
 
 const { Text, Title } = Typography
@@ -114,10 +119,12 @@ interface NodeDetailPanelProps {
   onClose: () => void
   onSave: (values: { label: string; description: string; config: Record<string, any> }) => void
   onExecute?: () => void
+  upstreamResult?: ParsedFile | null  // 上游节点的执行结果
+  onExecutionResult?: (result: ParsedFile) => void  // 执行结果回调
 }
 
 // 获取输入数据（根据节点类型和配置）
-const getInputData = (nodeType: NodeType, config?: Record<string, any>) => {
+const getInputData = (nodeType: NodeType, config?: Record<string, any>, upstreamResult?: ParsedFile | null) => {
   // 根据节点类型返回不同的输入数据
   switch (nodeType) {
     case 'parse_file':
@@ -165,6 +172,16 @@ const getInputData = (nodeType: NodeType, config?: Record<string, any>) => {
         }
       }
     default:
+      // 对于非触发节点，如果有上游数据，返回上游数据
+      if (upstreamResult) {
+        return {
+          data: upstreamResult.data,
+          schema: upstreamResult.schema,
+          file_path: upstreamResult.file_path,
+          analysis: upstreamResult.analysis,
+          editor_config: upstreamResult.editor_config,
+        }
+      }
       return {
         schema: {
           type: 'object',
@@ -238,10 +255,12 @@ const NodeDetailPanel = ({
   onClose,
   onSave,
   onExecute,
+  upstreamResult,
+  onExecutionResult,
 }: NodeDetailPanelProps) => {
   const [form] = Form.useForm()
   const [activeInputTab, setActiveInputTab] = useState<'schema' | 'table' | 'json'>('schema')
-  const [activeOutputTab, setActiveOutputTab] = useState<'schema' | 'table' | 'json'>('schema')
+  const [activeOutputTab, setActiveOutputTab] = useState<'schema' | 'table' | 'json' | 'workflow' | 'validation'>('validation')
   const [activeConfigTab, setActiveConfigTab] = useState<'parameters' | 'settings'>('parameters')
   // 用于跟踪文件路径，确保显示
   const [filePathValue, setFilePathValue] = useState<string>('')
@@ -252,13 +271,69 @@ const NodeDetailPanel = ({
   // 当前配置值（从表单获取，用于实时更新INPUT显示）
   const [currentConfig, setCurrentConfig] = useState<Record<string, any>>({})
 
-  // 根据当前配置和执行结果决定显示的数据
-  const inputData = nodeData ? getInputData(nodeData.type, currentConfig) : null
+  // INPUT 数据：只显示输入（来自上游节点）
+  // 对于触发节点，显示配置；对于非触发节点，显示上游节点的输出
+  const inputData = nodeData ? getInputData(nodeData.type, currentConfig, upstreamResult) : null
+  
+  // OUTPUT 数据：只显示当前节点的执行结果（不包含上游数据）
+  // 执行后，显示当前节点新增的数据（如 analysis, editor_config 等）
   const outputData = executionResult ? {
-    data: executionResult.data,
-    schema: executionResult.schema,
-    file_path: executionResult.file_path
-  } : (nodeData ? getMockOutputData(nodeData.type) : null)
+    // 根据节点类型显示不同的输出
+    ...(nodeData?.type === 'parse_file' ? {
+      data: executionResult.data,
+      schema: executionResult.schema,
+      file_path: executionResult.file_path,
+    } : {}),
+    ...(nodeData?.type === 'analyze_xml_structure' ? {
+      analysis: executionResult.analysis,
+    } : {}),
+    ...(nodeData?.type === 'generate_editor_config' ? {
+      editor_config: executionResult.editor_config,
+    } : {}),
+    ...(nodeData?.type === 'smart_edit' ? {
+      smart_edit_result: executionResult.smart_edit_result,
+    } : {}),
+    ...(nodeData?.type === 'generate_workflow' ? {
+      generated_workflow: executionResult.generated_workflow,
+    } : {}),
+    // 通用输出（如果节点执行后没有特定输出，显示通用数据）
+    ...(nodeData?.type !== 'parse_file' && 
+        nodeData?.type !== 'analyze_xml_structure' && 
+        nodeData?.type !== 'generate_editor_config' &&
+        nodeData?.type !== 'smart_edit' &&
+        nodeData?.type !== 'generate_workflow' ? {
+      data: executionResult.data,
+      schema: executionResult.schema,
+    } : {}),
+  } : null
+  
+  // 调试日志
+  useEffect(() => {
+    if (open && nodeData) {
+      console.log(`[NodeDetailPanel] 节点详情面板打开，节点类型: ${nodeData.type}, 节点ID: ${_nodeId}`)
+      console.log(`[NodeDetailPanel] upstreamResult:`, upstreamResult ? '有数据' : '无数据')
+      console.log(`[NodeDetailPanel] inputData:`, inputData ? '有数据' : '无数据')
+      console.log(`[NodeDetailPanel] executionResult:`, executionResult ? '有数据' : '无数据')
+      console.log(`[NodeDetailPanel] outputData:`, outputData ? '有数据' : '无数据')
+      if (upstreamResult) {
+        console.log(`[NodeDetailPanel] upstreamResult 详情:`, {
+          hasData: !!upstreamResult.data,
+          hasSchema: !!upstreamResult.schema,
+          hasAnalysis: !!upstreamResult.analysis,
+          filePath: upstreamResult.file_path,
+        })
+      }
+      if (executionResult) {
+        console.log(`[NodeDetailPanel] executionResult 详情:`, {
+          hasData: !!executionResult.data,
+          hasSchema: !!executionResult.schema,
+          hasAnalysis: !!executionResult.analysis,
+          hasEditorConfig: !!executionResult.editor_config,
+          filePath: executionResult.file_path,
+        })
+      }
+    }
+  }, [open, nodeData, upstreamResult, inputData, executionResult, outputData, _nodeId])
 
   useEffect(() => {
     if (open && nodeData) {
@@ -272,11 +347,17 @@ const NodeDetailPanel = ({
       // 同步文件路径状态和当前配置
       setFilePathValue(initialFilePath)
       setCurrentConfig(config)
-      // 重置执行结果
-      setExecutionResult(null)
+      // 如果上游节点有执行结果，使用上游结果；否则重置
+      if (upstreamResult) {
+        console.log(`[NodeDetailPanel useEffect] 设置上游结果到 executionResult，节点ID: ${_nodeId}`)
+        setExecutionResult(upstreamResult)
+      } else {
+        console.log(`[NodeDetailPanel useEffect] 没有上游结果，重置 executionResult，节点ID: ${_nodeId}`)
+        setExecutionResult(null)
+      }
       setExecutionError(null)
     }
-  }, [open, nodeData, form])
+  }, [open, nodeData, form, upstreamResult, _nodeId])
 
   // 更新当前配置的函数
   const updateCurrentConfig = () => {
@@ -311,65 +392,69 @@ const NodeDetailPanel = ({
     }
   }
 
-  // 处理节点执行
+  // 处理节点执行 - 使用执行器模式
   const handleNodeExecute = async () => {
     if (!nodeData) return
     
-    // 对于 parse_file 节点，需要文件路径
-    if (nodeData.type === 'parse_file') {
-      const filePath = form.getFieldValue('file_path')
-      if (!filePath || filePath.trim() === '') {
-        message.error('请先设置文件路径')
-        return
-      }
-      
-      try {
-        setExecuting(true)
-        setExecutionError(null)
-        message.loading({ content: '正在解析文件...', key: 'execute' })
-        
-        // 调试：打印文件路径
-        console.log('准备解析文件，路径:', filePath)
-        
-        // 调用文件解析API
-        const result = await fileApi.parse(filePath)
-        console.log('文件解析成功，结果:', result)
+    console.log(`[handleNodeExecute] 开始执行节点: ${nodeData.type}, 节点ID: ${_nodeId}`)
+    console.log(`[handleNodeExecute] 当前 executionResult:`, executionResult ? '有数据' : '无数据')
+    console.log(`[handleNodeExecute] 上游 upstreamResult:`, upstreamResult ? '有数据' : '无数据')
+    
+    // 优先使用上游节点的数据作为初始执行结果
+    // 如果当前节点已经执行过，使用当前结果；否则使用上游结果
+    const initialResult = executionResult || upstreamResult || null
+    
+    // 获取节点执行器
+    const executor = getNodeExecutor(nodeData.type, {
+      form,
+      executionResult: initialResult,  // 使用上游或当前结果（确保不是undefined）
+      upstreamResult: upstreamResult || null,  // 也传递上游结果，让执行器自己决定（确保不是undefined）
+      setExecutionResult: (result) => {
+        console.log(`[handleNodeExecute] setExecutionResult 回调被调用，节点ID: ${_nodeId}`)
         setExecutionResult(result)
-        message.success({ content: '文件解析成功', key: 'execute' })
-      } catch (error: any) {
-        // 提取错误信息
-        let errorMsg = '文件解析失败'
-        if (error) {
-          if (typeof error === 'string') {
-            errorMsg = error
-          } else if (error.message) {
-            errorMsg = error.message
-          } else if (error.response?.data?.detail) {
-            const detail = error.response.data.detail
-            if (Array.isArray(detail)) {
-              // FastAPI 验证错误
-              errorMsg = detail.map((err: any) => {
-                const field = err.loc?.join('.') || '未知字段'
-                const msg = err.msg || '验证失败'
-                return `${field}: ${msg}`
-              }).join('; ')
-            } else {
-              errorMsg = detail
-            }
-          } else if (error.response?.data?.message) {
-            errorMsg = error.response.data.message
-          } else if (typeof error === 'object') {
-            errorMsg = JSON.stringify(error)
-          }
+        // 通知父组件更新全局执行结果（立即通知，不等待执行完成）
+        if (onExecutionResult) {
+          console.log(`[handleNodeExecute] 调用 onExecutionResult 回调，节点ID: ${_nodeId}`)
+          onExecutionResult(result)
+        } else {
+          console.warn(`[handleNodeExecute] onExecutionResult 回调未定义，节点ID: ${_nodeId}`)
         }
-        console.error('文件解析错误:', error)
-        setExecutionError(errorMsg)
-        message.error({ content: errorMsg, key: 'execute' })
-      } finally {
-        setExecuting(false)
-      }
-    } else {
+      },
+      setExecuting,
+      setExecutionError,
+    })
+    
+    if (!executor) {
       message.info('该节点类型的执行功能开发中')
+      return
+    }
+    
+    try {
+      setExecuting(true)
+      setExecutionError(null)
+      
+      // 执行节点逻辑
+      const result = await executor.execute()
+      console.log(`[handleNodeExecute] 执行器返回结果:`, result.success ? '成功' : '失败', result.error || '')
+      
+      if (result.success && result.result) {
+        setExecutionResult(result.result)
+        // 通知父组件更新全局执行结果（双重保险，确保结果被存储）
+        if (onExecutionResult) {
+          console.log(`[handleNodeExecute] 执行成功，调用 onExecutionResult 回调，节点ID: ${_nodeId}`)
+          onExecutionResult(result.result)
+        } else {
+          console.warn(`[handleNodeExecute] 执行成功但 onExecutionResult 回调未定义，节点ID: ${_nodeId}`)
+        }
+      } else if (!result.success) {
+        setExecutionError(result.error || '执行失败')
+      }
+    } catch (error: any) {
+      console.error('[handleNodeExecute] 节点执行错误:', error)
+      setExecutionError(error?.message || '操作失败')
+      message.error({ content: error?.message || '操作失败', key: 'execute' })
+    } finally {
+      setExecuting(false)
     }
   }
 
@@ -567,9 +652,47 @@ const NodeDetailPanel = ({
             </Form.Item>
             <Form.Item name="pretty_print" label="格式化输出" valuePropName="checked">
               <Switch defaultChecked />
+              <div style={{ marginTop: '4px', fontSize: '12px', color: '#8c8c8c' }}>
+                XML/JSON/YAML格式时，美化输出（格式化、缩进）
+              </div>
+            </Form.Item>
+            <Form.Item 
+              name="sort_by" 
+              label="排序字段（可选）"
+              tooltip="XML格式支持：按字段排序，例如 @attributes.id 表示按id属性排序"
+            >
+              <Input placeholder="例如: @attributes.id（仅XML格式支持）" />
             </Form.Item>
           </>
         )
+      // 所有新节点类型使用配置组件
+      case 'edit_data':
+      case 'filter_data':
+      case 'validate_data':
+      case 'analyze_xml_structure':
+      case 'generate_editor_config':
+      case 'smart_edit':
+      case 'generate_workflow':
+      case 'chatgpt':
+      case 'gemini':
+      case 'deepseek':
+      case 'memory': {
+        const ConfigComponent = getNodeConfigComponent(nodeData.type)
+        if (ConfigComponent) {
+          return (
+            <ConfigComponent
+              form={form}
+              filePathValue={filePathValue}
+              setFilePathValue={setFilePathValue}
+              onFileSelect={handleFileSelect}
+              onConfigChange={updateCurrentConfig}
+            />
+          )
+        }
+        // 如果配置组件不存在，返回null（不应该发生）
+        console.warn(`节点类型 ${nodeData.type} 没有配置组件`)
+        return null
+      }
       default:
         return null
     }
@@ -982,8 +1105,28 @@ const NodeDetailPanel = ({
           ) : outputData && executionResult ? (
             <Tabs
               activeKey={activeOutputTab}
-              onChange={(key) => setActiveOutputTab(key as 'schema' | 'table' | 'json')}
+              onChange={(key) => setActiveOutputTab(key as 'schema' | 'table' | 'json' | 'workflow' | 'validation')}
               items={[
+                // 验证视图（优先显示，针对特定节点类型）
+                ...((nodeData?.type === 'parse_file' || 
+                     nodeData?.type === 'analyze_xml_structure' || 
+                     nodeData?.type === 'generate_editor_config') ? [{
+                  key: 'validation',
+                  label: (
+                    <Space>
+                      <CheckCircleOutlined />
+                      验证
+                    </Space>
+                  ),
+                  children: (
+                    <div style={{ padding: '16px' }}>
+                      <NodeValidationView 
+                        nodeType={nodeData.type} 
+                        executionResult={executionResult} 
+                      />
+                    </div>
+                  ),
+                }] : []),
                 {
                   key: 'schema',
                   label: (
@@ -992,7 +1135,7 @@ const NodeDetailPanel = ({
                       Schema
                     </Space>
                   ),
-                  children: renderSchemaView(outputData.schema),
+                  children: renderSchemaView(outputData.schema || (outputData as any).analysis?.structure),
                 },
                 {
                   key: 'table',
@@ -1014,7 +1157,7 @@ const NodeDetailPanel = ({
                   ),
                   children: (
                     <div>
-                      {executionResult && (
+                      {executionResult && executionResult.file_path && (
                         <>
                           <div style={{ marginBottom: '12px' }}>
                             <Descriptions column={1} size="small" bordered>
@@ -1027,12 +1170,49 @@ const NodeDetailPanel = ({
                         </>
                       )}
                       <div>
-                        <Text strong style={{ marginBottom: '8px', display: 'block' }}>解析后的数据：</Text>
-                        {renderJsonView({ data: outputData.data, schema: outputData.schema })}
+                        <Text strong style={{ marginBottom: '8px', display: 'block' }}>
+                          {executionResult.generated_workflow ? '生成的工作流定义：' : 
+                           executionResult.analysis ? '结构分析结果：' :
+                           executionResult.editor_config ? '编辑器配置：' :
+                           executionResult.smart_edit_result ? '智能编辑结果：' :
+                           '解析后的数据：'}
+                        </Text>
+                        {renderJsonView(
+                          executionResult.generated_workflow || 
+                          executionResult.analysis || 
+                          executionResult.editor_config ||
+                          executionResult.smart_edit_result ||
+                          { data: outputData.data, schema: outputData.schema }
+                        )}
                       </div>
                     </div>
                   ),
                 },
+                ...(executionResult.generated_workflow ? [{
+                  key: 'workflow',
+                  label: (
+                    <Space>
+                      <FileSyncOutlined />
+                      工作流
+                    </Space>
+                  ),
+                  children: (
+                    <div>
+                      <Text strong style={{ marginBottom: '8px', display: 'block' }}>
+                        {executionResult.generated_workflow.workflow_name || '生成的工作流'}
+                      </Text>
+                      <Text type="secondary" style={{ marginBottom: '12px', display: 'block' }}>
+                        {executionResult.generated_workflow.workflow_description || ''}
+                      </Text>
+                      <Divider />
+                      <Text strong style={{ marginBottom: '8px', display: 'block' }}>节点列表：</Text>
+                      {renderJsonView(executionResult.generated_workflow.nodes || [])}
+                      <Divider style={{ marginTop: '16px' }} />
+                      <Text strong style={{ marginBottom: '8px', display: 'block' }}>连接关系：</Text>
+                      {renderJsonView(executionResult.generated_workflow.edges || [])}
+                    </div>
+                  ),
+                }] : []),
               ]}
             />
           ) : (

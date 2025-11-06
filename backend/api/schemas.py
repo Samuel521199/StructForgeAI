@@ -50,7 +50,7 @@ async def analyze_schema(request: SchemaAnalysisRequest):
         relationships = learner.understand_relationships(schema)
         
         return SchemaAnalysisResponse(
-            schema=schema,
+            schema_data=schema,  # 使用 schema_data 字段，但对外仍支持 schema 别名
             relationships=relationships
         )
     except Exception as e:

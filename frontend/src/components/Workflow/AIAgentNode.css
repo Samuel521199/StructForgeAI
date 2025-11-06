@@ -1,0 +1,196 @@
+.ai-agent-node {
+  position: relative;
+  min-width: 320px;
+  width: 320px;
+  height: 80px;
+}
+
+.ai-agent-node-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 40px; /* 大圆角，pill-like */
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.ai-agent-node-body:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.ai-agent-node-body:active {
+  cursor: grabbing;
+}
+
+.ai-agent-node.selected .ai-agent-node-body {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.ai-agent-node.error .ai-agent-node-body {
+  border-color: #ff4d4f;
+}
+
+.ai-agent-error-indicator {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  width: 20px;
+  height: 20px;
+  background: #ff4d4f;
+  color: #fff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  z-index: 10;
+}
+
+.ai-agent-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #262626;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.ai-agent-label {
+  flex: 1;
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 连接点样式 */
+.ai-agent-handle {
+  opacity: 1 !important;
+  transition: all 0.2s ease;
+  cursor: crosshair;
+}
+
+.ai-agent-handle:hover {
+  background: #1890ff !important;
+  transform: scale(1.3);
+  z-index: 1000;
+}
+
+.ai-agent-handle-square {
+  /* 正方形已在style中设置 */
+}
+
+.ai-agent-handle-circle {
+  /* 圆形已在style中设置 */
+}
+
+.ai-agent-handle-diamond {
+  /* 菱形已在style中设置 */
+}
+
+.ai-agent-handle-diamond.required {
+  background: #ff4d4f !important;
+  border-color: #ff4d4f !important;
+}
+
+/* 底部端口组 */
+.ai-agent-bottom-ports {
+  position: absolute;
+  bottom: -60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.ai-agent-bottom-port-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.ai-agent-port-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 8px;
+  white-space: nowrap;
+}
+
+.ai-agent-add-button {
+  width: 20px;
+  height: 20px;
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.ai-agent-add-button:hover {
+  background: #40a9ff;
+  transform: scale(1.1);
+}
+
+.ai-agent-add-button:active {
+  transform: scale(0.95);
+}
+
+/* 输出端口旁边的 "+" 按钮 */
+.ai-agent-add-output-button {
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.ai-agent-add-output-button:hover {
+  background: #40a9ff;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.ai-agent-add-output-button:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* 隐藏默认的 "+" 按钮效果 */
+.ai-agent-node:hover .ai-agent-handle[data-handlepos="right"]::after {
+  display: none;
+}
+

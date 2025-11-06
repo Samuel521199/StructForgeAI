@@ -76,25 +76,66 @@ class XMLParser(BaseParser):
             return False
         return True
     
-    def export(self, data: Dict[str, Any], output_path: Path) -> bool:
-        """导出为XML文件"""
+    def export(
+        self, 
+        data: Dict[str, Any], 
+        output_path: Path,
+        pretty_print: bool = True,
+        sort_by: Optional[str] = None
+    ) -> bool:
+        """
+        导出为XML文件
+        
+        Args:
+            data: 要导出的数据
+            output_path: 输出路径
+            pretty_print: 是否美化输出（格式化）
+            sort_by: 排序字段（可选，如 "@attributes.id"）
+        """
         try:
             root = self._dict_to_element(data)
+            
+            # 如果指定了排序，对子元素进行排序
+            if sort_by and root is not None:
+                self._sort_elements(root, sort_by)
+            
             tree = etree.ElementTree(root)
             
             # 确保输出目录存在
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
+            # 使用lxml的格式化功能
+            if pretty_print:
+                # 美化输出：格式化XML
+                etree.indent(tree, space="\t")  # 使用Tab缩进，更接近原始格式
+            
             tree.write(
                 str(output_path),
                 encoding=self.encoding,
                 xml_declaration=True,
-                pretty_print=True
+                pretty_print=pretty_print
             )
             return True
         except Exception as e:
             logger.error(f"XML导出失败: {e}")
             return False
+    
+    def _sort_elements(self, element: etree.Element, sort_by: str) -> None:
+        """对元素的子元素进行排序"""
+        if not element or len(element) == 0:
+            return
+        
+        # 解析排序字段路径
+        if sort_by.startswith("@attributes."):
+            attr_name = sort_by.replace("@attributes.", "")
+            # 按属性排序
+            element[:] = sorted(
+                element,
+                key=lambda child: child.get(attr_name, "") if child is not None else ""
+            )
+        else:
+            # 按元素名排序
+            element[:] = sorted(element, key=lambda child: child.tag if child is not None else "")
     
     def _dict_to_element(self, data: Any, tag_name: str = "root") -> etree.Element:
         """将字典转换为XML元素"""

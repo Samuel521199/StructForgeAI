@@ -7,6 +7,14 @@ import {
   ToolOutlined,
   ExportOutlined,
   ThunderboltOutlined,
+  EditOutlined,
+  FilterOutlined,
+  CheckCircleOutlined,
+  RobotOutlined,
+  SettingOutlined,
+  BulbOutlined,
+  FileSyncOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons'
 import './WorkflowNode.css'
 
@@ -16,6 +24,18 @@ export type NodeType =
   | 'process_natural_language'
   | 'apply_operations'
   | 'export_file'
+  | 'edit_data'
+  | 'filter_data'
+  | 'validate_data'
+  | 'analyze_xml_structure'
+  | 'generate_editor_config'
+  | 'smart_edit'
+  | 'generate_workflow'
+  | 'ai_agent'
+  | 'chatgpt'
+  | 'gemini'
+  | 'deepseek'
+  | 'memory'
 
 interface NodeData {
   label: string
@@ -49,6 +69,62 @@ const validateNodeConfig = (type: NodeType, config?: Record<string, any>): { isV
         missingFields.push('instruction')
       }
       break
+    case 'edit_data':
+      if (!config.operation || !['create', 'update', 'delete'].includes(config.operation)) {
+        missingFields.push('operation')
+      }
+      if (!config.path || config.path.trim() === '') {
+        missingFields.push('path')
+      }
+      break
+    case 'filter_data':
+      if (!config.filter_condition || Object.keys(config.filter_condition).length === 0) {
+        missingFields.push('filter_condition')
+      }
+      break
+    case 'validate_data':
+      // validate_data 通常不需要强制配置
+      break
+    case 'analyze_xml_structure':
+      // analyze_xml_structure 从上游节点获取数据
+      break
+    case 'generate_editor_config':
+      if (!config.xml_structure || Object.keys(config.xml_structure).length === 0) {
+        missingFields.push('xml_structure')
+      }
+      break
+    case 'smart_edit':
+      if (!config.instruction || config.instruction.trim() === '') {
+        missingFields.push('instruction')
+      }
+      break
+    case 'generate_workflow':
+      // generate_workflow 从上游节点获取数据
+      break
+    case 'chatgpt':
+    case 'gemini':
+    case 'deepseek':
+      if (!config.api_key || config.api_key.trim() === '') {
+        missingFields.push('api_key')
+      }
+      if (!config.api_url || config.api_url.trim() === '') {
+        missingFields.push('api_url')
+      }
+      if (!config.request_body || config.request_body.trim() === '') {
+        missingFields.push('request_body')
+      }
+      break
+    case 'memory':
+      if (!config.operation) {
+        missingFields.push('operation')
+      }
+      if (!config.memory_type) {
+        missingFields.push('memory_type')
+      }
+      if (config.operation === 'store' && !config.key) {
+        missingFields.push('key')
+      }
+      break
     // analyze_schema 和 apply_operations 通常不需要强制配置
   }
   
@@ -71,6 +147,28 @@ const getNodeDisplayInfo = (type: NodeType, config?: Record<string, any>): strin
       return config.instruction ? config.instruction.substring(0, 30) + (config.instruction.length > 30 ? '...' : '') : null
     case 'analyze_schema':
       return config.use_ai ? 'AI分析' : '规则分析'
+    case 'edit_data':
+      return config.operation ? `${config.operation} @ ${config.path}` : null
+    case 'filter_data':
+      return config.filter_condition ? `过滤条件: ${Object.keys(config.filter_condition).join(', ')}` : null
+    case 'validate_data':
+      return config.required_fields ? `验证字段: ${config.required_fields.length}` : null
+    case 'analyze_xml_structure':
+      return 'AI结构分析'
+    case 'generate_editor_config':
+      return config.editor_type ? `生成${config.editor_type}编辑器` : null
+    case 'smart_edit':
+      return config.instruction ? config.instruction.substring(0, 20) + '...' : null
+    case 'generate_workflow':
+      return config.workflow_type ? `生成${config.workflow_type}工作流` : null
+    case 'chatgpt':
+      return config.model ? `ChatGPT (${config.model})` : 'ChatGPT'
+    case 'gemini':
+      return config.model ? `Gemini (${config.model})` : 'Gemini'
+    case 'deepseek':
+      return config.model ? `DeepSeek (${config.model})` : 'DeepSeek'
+    case 'memory':
+      return config.operation ? `Memory (${config.operation})` : 'Memory'
     default:
       return null
   }
@@ -97,10 +195,81 @@ const nodeConfig: Record<NodeType, { icon: JSX.Element; color: string }> = {
     icon: <ExportOutlined />,
     color: '#eb2f96',
   },
+  edit_data: {
+    icon: <EditOutlined />,
+    color: '#13c2c2',
+  },
+  filter_data: {
+    icon: <FilterOutlined />,
+    color: '#2f54eb',
+  },
+  validate_data: {
+    icon: <CheckCircleOutlined />,
+    color: '#faad14',
+  },
+  analyze_xml_structure: {
+    icon: <RobotOutlined />,
+    color: '#722ed1',
+  },
+  generate_editor_config: {
+    icon: <SettingOutlined />,
+    color: '#13c2c2',
+  },
+  smart_edit: {
+    icon: <BulbOutlined />,
+    color: '#eb2f96',
+  },
+  generate_workflow: {
+    icon: <FileSyncOutlined />,
+    color: '#52c41a',
+  },
+  ai_agent: {
+    icon: <RobotOutlined />,
+    color: '#722ed1',
+  },
+  chatgpt: {
+    icon: <ApiOutlined />,
+    color: '#10a37f',
+  },
+  gemini: {
+    icon: <ApiOutlined />,
+    color: '#4285f4',
+  },
+  deepseek: {
+    icon: <ApiOutlined />,
+    color: '#1890ff',
+  },
+  memory: {
+    icon: <DatabaseOutlined />,
+    color: '#52c41a',
+  },
 }
 
 const WorkflowNode = ({ data, selected }: NodeProps<NodeData>) => {
+  // AI Agent 节点使用特殊组件
+  if (data.type === 'ai_agent') {
+    return null // 将在 WorkflowCanvas 中使用 AIAgentNode
+  }
+
   const config = nodeConfig[data.type]
+  
+  // 安全检查：如果节点类型未配置，使用默认配置
+  if (!config) {
+    console.warn(`节点类型 ${data.type} 未在 nodeConfig 中配置，使用默认配置`)
+    return (
+      <div className={`workflow-node ${selected ? 'selected' : ''}`}>
+        <div style={{ padding: '16px', textAlign: 'center', color: '#8c8c8c' }}>
+          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>
+            {data.label || data.type}
+          </div>
+          <div style={{ fontSize: 12 }}>
+            未配置的节点类型
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
   const validation = validateNodeConfig(data.type, data.config)
   const displayInfo = getNodeDisplayInfo(data.type, data.config)
   const isTrigger = data.type === 'parse_file'

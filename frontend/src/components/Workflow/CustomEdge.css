@@ -1,0 +1,116 @@
+/* 连线按钮图标容器 - 透明背景 */
+.edge-button-icon-wrapper {
+  background: transparent !important;
+  border: none !important;
+  transition: all 0.2s ease;
+  pointer-events: auto !important;
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+/* Add 按钮图标样式 */
+.edge-icon-add {
+  transition: all 0.2s ease;
+  color: #1890ff !important;
+}
+
+.edge-button-add-wrapper:hover .edge-icon-add {
+  transform: scale(1.2);
+  color: #40a9ff !important;
+  filter: drop-shadow(0 2px 4px rgba(24, 144, 255, 0.4));
+}
+
+/* Add 按钮外框悬停效果 */
+g:hover circle[stroke="#1890ff"] {
+  stroke: #40a9ff !important;
+  stroke-width: 2.5 !important;
+  filter: drop-shadow(0 2px 4px rgba(24, 144, 255, 0.3));
+}
+
+/* Delete 按钮图标样式 */
+.edge-icon-delete {
+  transition: all 0.2s ease;
+  color: #ff4d4f !important;
+}
+
+.edge-button-delete-wrapper:hover .edge-icon-delete {
+  transform: scale(1.2);
+  color: #ff7875 !important;
+  filter: drop-shadow(0 2px 4px rgba(255, 77, 79, 0.4));
+}
+
+/* Delete 按钮外框悬停效果 */
+g:hover circle[stroke="#ff4d4f"] {
+  stroke: #ff7875 !important;
+  stroke-width: 2.5 !important;
+  filter: drop-shadow(0 2px 4px rgba(255, 77, 79, 0.3));
+}
+
+/* 选中连线的样式 */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #ff4d4f !important;
+  stroke-width: 3 !important;
+}
+
+/* 连线点击区域 */
+.react-flow__edge {
+  cursor: pointer;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3;
+  stroke: #1890ff;
+}
+
+/* 自定义连线组的鼠标事件支持 */
+.custom-edge-group {
+  pointer-events: none; /* 容器本身不处理鼠标事件 */
+}
+
+/* 透明悬停路径 - 必须能够捕获鼠标事件 */
+.custom-edge-hover-path {
+  pointer-events: stroke !important; /* 只在路径上响应鼠标事件 */
+  cursor: pointer !important;
+}
+
+/* 确保按钮组可以接收鼠标事件 */
+.custom-edge-group > g[transform*="translate"] {
+  pointer-events: all !important;
+  cursor: pointer !important;
+}
+
+/* foreignObject 样式 */
+foreignObject {
+  pointer-events: auto !important;
+  overflow: visible !important;
+  z-index: 10000 !important;
+  position: relative;
+}
+
+/* 确保选中连线的按钮容器可见 */
+.react-flow__edge.selected foreignObject {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 确保选中连线的按钮组可见 */
+.react-flow__edge.selected g[transform*="translate"] {
+  pointer-events: all !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 调试：选中的连线显示按钮区域 */
+.react-flow__edge.selected g[transform*="translate"] circle {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.react-flow__edge.selected g[transform*="translate"] foreignObject {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+

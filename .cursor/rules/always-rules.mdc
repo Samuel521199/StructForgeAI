@@ -37,10 +37,22 @@ F:\StructForgeAI\
 backend/
 ├── api/                 # API路由层
 │   ├── __init__.py     # 路由聚合
+│   ├── base.py         # API基类和工具函数
 │   ├── files.py        # 文件管理API
 │   ├── schemas.py      # Schema分析API
 │   ├── workflows.py    # 工作流API
-│   └── ai.py           # AI服务API
+│   ├── ai.py           # AI服务API
+│   ├── data_operations.py # 数据操作API
+│   └── ai_workflow.py  # AI工作流API
+├── storage/             # 存储层（可插拔存储后端）
+│   ├── __init__.py
+│   ├── base.py         # 存储接口基类
+│   ├── memory.py       # 内存存储
+│   ├── json_storage.py # JSON文件存储
+│   ├── sqlite_storage.py # SQLite存储
+│   ├── sql_storage.py  # SQL数据库存储（PostgreSQL/MySQL）
+│   ├── factory.py      # 存储工厂
+│   └── migrate.py      # 数据迁移工具
 ├── core/                # 核心模块
 │   ├── __init__.py
 │   ├── config.py       # 配置管理
@@ -72,7 +84,51 @@ backend/
 └── requirements.txt    # Python依赖
 ```
 
-### 2.3 目录命名规则
+### 2.3 前端目录结构
+
+```
+frontend/
+├── src/
+│   ├── components/     # React组件
+│   │   └── Workflow/   # 工作流组件
+│   │       ├── NodeConfigs/      # 节点配置组件（模块化）
+│   │       │   ├── ParseFileConfig.tsx
+│   │       │   ├── EditDataConfig.tsx
+│   │       │   ├── FilterDataConfig.tsx
+│   │       │   ├── ValidateDataConfig.tsx
+│   │       │   ├── AnalyzeXMLStructureConfig.tsx
+│   │       │   ├── GenerateEditorConfigConfig.tsx
+│   │       │   ├── SmartEditConfig.tsx
+│   │       │   ├── GenerateWorkflowConfig.tsx
+│   │       │   └── index.tsx      # 配置组件注册表
+│   │       ├── NodeExecutors/     # 节点执行器（模块化）
+│   │       │   ├── BaseExecutor.ts
+│   │       │   ├── ParseFileExecutor.ts
+│   │       │   ├── EditDataExecutor.ts
+│   │       │   ├── FilterDataExecutor.ts
+│   │       │   ├── ValidateDataExecutor.ts
+│   │       │   ├── AnalyzeXMLStructureExecutor.ts
+│   │       │   ├── GenerateEditorConfigExecutor.ts
+│   │       │   ├── SmartEditExecutor.ts
+│   │       │   ├── GenerateWorkflowExecutor.ts
+│   │       │   └── index.ts       # 执行器注册表
+│   │       ├── WorkflowCanvas.tsx  # 工作流画布
+│   │       ├── WorkflowNode.tsx    # 节点组件
+│   │       ├── WorkflowHeader.tsx  # 工作流头部
+│   │       ├── WorkflowToolbar.tsx # 工具栏
+│   │       ├── NodeSelector.tsx   # 节点选择器
+│   │       └── NodeDetailPanel.tsx # 节点详情面板
+│   ├── pages/          # 页面组件
+│   │   ├── Workflow.tsx        # 工作流列表页
+│   │   └── WorkflowEditor.tsx  # 工作流编辑页
+│   ├── services/       # 服务层
+│   │   └── api.ts      # API客户端（统一封装）
+│   ├── types/          # TypeScript类型定义
+│   │   └── index.ts    # 类型导出
+│   └── main.tsx        # 应用入口
+```
+
+### 2.4 目录命名规则
 
 - **目录名**：使用 `snake_case`（小写字母+下划线）
   - ✅ 正确：`data_parser`, `schema_learner`, `ai_integration`
@@ -302,13 +358,67 @@ file_path = settings.UPLOAD_DIR + "/" + filename
 - URL使用复数名词：`/api/v1/files`, `/api/v1/schemas`
 - 使用适当的HTTP状态码
 
-### 8.2 响应格式
+### 8.2 统一响应格式
 
-- 成功响应返回JSON对象
-- 错误响应使用 `HTTPException`
-- 统一错误格式：`{"detail": "错误信息"}`
+#### 后端API响应格式
 
-### 8.3 API版本
+**成功响应**：使用 `api.base.AIWorkflowService.create_success_response()`
+```python
+from api.base import AIWorkflowService
+
+return ai_service.create_success_response(
+    message="操作完成",
+    data={"analysis": result}  # 可选
+)
+# 返回: {"success": True, "message": "...", "data": {...}}
+```
+
+**错误响应**：使用 `api.base.AIWorkflowService.create_error_response()`
+```python
+raise ai_service.create_error_response(f"操作失败: {str(e)}")
+# 抛出: HTTPException(status_code=500, detail="...")
+```
+
+#### 前端API调用规范
+
+**响应拦截器**：`api.ts` 中的响应拦截器已返回 `response.data`，所以：
+```typescript
+// ✅ 正确：response 已经是响应体，不是 AxiosResponse
+const response: any = await api.post('/endpoint', data)
+return {
+  success: response.success,
+  data: response.data?.field || response.field,
+  message: response.message,
+}
+
+// ❌ 错误：不要访问 response.data.data
+const response = await api.post('/endpoint', data)
+return response.data.data  // 错误！
+```
+
+### 8.3 AI节点API规范
+
+**使用基类**：所有AI节点API必须使用 `AIWorkflowService`
+```python
+from api.base import AIWorkflowService
+
+router = APIRouter()
+ai_service = AIWorkflowService()
+
+@router.post("/endpoint")
+async def endpoint(request: RequestModel):
+    result = await ai_service.call_ai(
+        system_role="...",
+        user_prompt="...",
+        operation_name="操作名称"
+    )
+    return ai_service.create_success_response(
+        message="完成",
+        data={"result": result}
+    )
+```
+
+### 8.4 API版本
 
 - 使用URL版本控制：`/api/v1/`
 - 新版本创建新的路由模块
@@ -369,38 +479,177 @@ feat(parser): 添加Excel解析器支持
 - 及时释放不需要的对象
 - 避免在内存中保存过多数据
 
-## 十二、代码审查检查清单
+## 十二、工作流节点扩展规范
+
+### 12.1 添加新节点类型（后端）
+
+1. **创建API端点**（`backend/api/`）
+   ```python
+   # backend/api/new_node.py
+   from api.base import AIWorkflowService
+   from fastapi import APIRouter
+   from pydantic import BaseModel
+   
+   router = APIRouter()
+   ai_service = AIWorkflowService()
+   
+   class NewNodeRequest(BaseModel):
+       # 请求参数
+       pass
+   
+   @router.post("/new-node")
+   async def new_node(request: NewNodeRequest):
+       # 使用 ai_service.call_ai() 或直接处理
+       result = await ai_service.call_ai(...)
+       return ai_service.create_success_response(
+           message="完成",
+           data={"result": result}
+       )
+   ```
+
+2. **注册路由**（`backend/api/__init__.py`）
+   ```python
+   router.include_router(new_node.router, prefix="/new-node", tags=["新节点"])
+   ```
+
+### 12.2 添加新节点类型（前端）
+
+1. **创建执行器**（`frontend/src/components/Workflow/NodeExecutors/`）
+   ```typescript
+   // NewNodeExecutor.ts
+   import { BaseExecutor } from './BaseExecutor'
+   import { newNodeApi } from '@/services/api'
+   
+   export class NewNodeExecutor extends BaseExecutor {
+     async execute(): Promise<ExecutorResult> {
+       // 实现执行逻辑
+       const result = await newNodeApi.call(...)
+       return { success: true, result }
+     }
+   }
+   ```
+
+2. **创建配置组件**（`frontend/src/components/Workflow/NodeConfigs/`）
+   ```typescript
+   // NewNodeConfig.tsx
+   export const NewNodeConfig: React.FC<NodeConfigProps> = ({ form }) => {
+     return (
+       <Form.Item name="param" label="参数">
+         <Input />
+       </Form.Item>
+     )
+   }
+   ```
+
+3. **注册执行器和配置**
+   - 在 `NodeExecutors/index.ts` 注册执行器
+   - 在 `NodeConfigs/index.tsx` 注册配置组件
+   - 在 `WorkflowNode.tsx` 添加节点类型和验证逻辑
+
+4. **更新类型定义**
+   - 在 `WorkflowNode.tsx` 的 `NodeType` 中添加新类型
+   - 在 `WorkflowEditor.tsx` 的 `defaultNodeConfigs` 中添加默认配置
+
+### 12.3 节点类型分类
+
+- **基础节点**：`parse_file`, `analyze_schema`, `export_file`
+- **数据处理节点**：`edit_data`, `filter_data`, `validate_data`
+- **AI智能节点**：`analyze_xml_structure`, `generate_editor_config`, `smart_edit`, `generate_workflow`
+- **传统节点**：`process_natural_language`, `apply_operations`
+
+## 十三、存储系统规范
+
+### 13.1 存储后端选择
+
+支持多种存储后端（通过 `WORKFLOW_STORAGE_TYPE` 配置）：
+- `memory` - 内存存储（开发/测试）
+- `json` - JSON文件存储（小项目）
+- `sqlite` - SQLite数据库（推荐用于中小项目）
+- `postgresql` - PostgreSQL（大型项目）
+- `mysql` - MySQL（大型项目）
+
+### 13.2 存储接口规范
+
+所有存储实现必须继承 `storage.base.WorkflowStorage`：
+```python
+from storage.base import WorkflowStorage
+
+class CustomStorage(WorkflowStorage):
+    async def save(self, workflow_id: str, workflow_data: Dict) -> None:
+        # 实现保存逻辑
+        pass
+    
+    async def load(self, workflow_id: str) -> Dict:
+        # 实现加载逻辑
+        pass
+    # ... 实现其他必需方法
+```
+
+### 13.3 数据迁移
+
+使用 `storage.migrate.StorageMigrator` 进行存储迁移：
+```python
+from storage.migrate import StorageMigrator
+
+migrator = StorageMigrator()
+await migrator.migrate(source_storage, target_storage)
+```
+
+## 十四、代码审查检查清单
 
 编写代码时确保：
 - [ ] 遵循命名规范（类PascalCase，函数snake_case）
-- [ ] 添加类型提示
-- [ ] 添加docstring
-- [ ] 使用logger记录日志
+- [ ] 添加类型提示（Python）或类型定义（TypeScript）
+- [ ] 添加docstring（Python）或JSDoc（TypeScript）
+- [ ] 使用logger记录日志（后端）
 - [ ] 错误处理完善
-- [ ] 路径使用pathlib.Path
+- [ ] 路径使用pathlib.Path（Python）
 - [ ] 配置通过settings获取
 - [ ] API路由使用kebab-case
-- [ ] 代码格式符合PEP 8
+- [ ] 代码格式符合PEP 8（Python）或ESLint（TypeScript）
+- [ ] 新节点使用模块化架构（NodeExecutors + NodeConfigs）
+- [ ] AI节点API使用 `AIWorkflowService` 基类
+- [ ] 统一使用 `create_success_response()` 和 `create_error_response()`
 
-## 十三、特殊约定
+## 十五、特殊约定
 
-### 13.1 AI模型
+### 15.1 AI模型
 
 - 默认模型：Qwen2.5-7B-Instruct (Q4量化)
 - 提供商优先级：Ollama > LM Studio > OpenAI
 - 支持本地部署优先，保护数据隐私
 
-### 13.2 文件处理
+### 15.2 文件处理
 
 - 上传文件保存在 `data/uploads/`
 - 导出文件保存在 `data/exports/`
 - 支持的文件大小限制：默认100MB
 
-### 13.3 日志文件
+### 15.3 日志文件
 
 - 日志保存在 `logs/` 目录
 - 日志文件不提交到Git
 - 使用轮转避免日志文件过大
+
+### 15.4 前端状态管理
+
+- 使用 React Hooks (`useState`, `useEffect`, `useCallback`)
+- 工作流状态通过 `useNodesState` 和 `useEdgesState` 管理
+- 节点配置和执行结果通过 `NodeDetailPanel` 管理
+
+### 15.5 模块化架构原则
+
+**前端节点架构**：
+- ✅ 每个节点类型有独立的执行器（`NodeExecutors/`）
+- ✅ 每个节点类型有独立的配置组件（`NodeConfigs/`）
+- ✅ 通过注册表统一管理，便于扩展
+- ❌ 不要在主文件中写所有节点的配置和执行逻辑
+
+**后端API架构**：
+- ✅ AI节点使用 `AIWorkflowService` 基类
+- ✅ 统一使用 `create_success_response()` 和 `create_error_response()`
+- ✅ 公共逻辑提取到 `api.base` 模块
+- ❌ 不要在多个端点中重复AI调用和JSON解析代码
 
 ---
 

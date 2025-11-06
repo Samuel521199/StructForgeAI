@@ -14,9 +14,12 @@ class SchemaAnalysisRequest(BaseModel):
 
 class SchemaAnalysisResponse(BaseModel):
     """Schema分析响应"""
-    schema: Dict[str, Any]  # 响应中使用schema不会冲突，因为BaseModel.schema()是方法
+    schema_data: Dict[str, Any] = Field(..., alias="schema")  # 使用别名避免与BaseModel.schema()方法冲突
     relationships: Optional[Dict[str, Any]] = None
     base_schema: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        populate_by_name = True  # 允许使用别名或字段名
 
 
 class IntentInferenceRequest(BaseModel):

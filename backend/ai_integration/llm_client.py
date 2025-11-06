@@ -67,6 +67,14 @@ class LLMClient:
                 "usage": result.get("eval_count", 0)
             }
             
+        except requests.exceptions.ConnectionError as e:
+            error_msg = (
+                f"无法连接到 Ollama 服务 ({self.base_url})。\n"
+                f"请确保 Ollama 正在运行，或配置其他 AI 提供商（如 LM Studio）。\n"
+                f"错误详情: {str(e)}"
+            )
+            logger.error(error_msg)
+            raise ConnectionError(error_msg) from e
         except Exception as e:
             logger.error(f"Ollama API调用失败: {e}")
             raise
@@ -98,6 +106,14 @@ class LLMClient:
                 "usage": result.get("usage", {})
             }
             
+        except requests.exceptions.ConnectionError as e:
+            error_msg = (
+                f"无法连接到 LM Studio 服务 ({self.base_url})。\n"
+                f"请确保 LM Studio 正在运行并启用了本地服务器。\n"
+                f"错误详情: {str(e)}"
+            )
+            logger.error(error_msg)
+            raise ConnectionError(error_msg) from e
         except Exception as e:
             logger.error(f"LM Studio API调用失败: {e}")
             raise

@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Button, message, Modal, Select, Spin } from 'antd'
 import { PlayCircleOutlined } from '@ant-design/icons'
 import { useSearchParams } from 'react-router-dom'
 import type { Node, Edge, Connection, ReactFlowInstance } from 'reactflow'
+import { MarkerType } from 'reactflow'
 import WorkflowHeader from '@/components/Workflow/WorkflowHeader'
 import WorkflowCanvas from '@/components/Workflow/WorkflowCanvas'
 import NodeDetailPanel from '@/components/Workflow/NodeDetailPanel'
@@ -37,6 +38,54 @@ const defaultNodeConfigs: Record<
   export_file: {
     label: '导出文件',
     description: '导出处理后的数据',
+  },
+  edit_data: {
+    label: '编辑数据',
+    description: '创建、更新或删除数据条目',
+  },
+  filter_data: {
+    label: '过滤数据',
+    description: '根据条件过滤数据',
+  },
+  validate_data: {
+    label: '验证数据',
+    description: '验证数据是否符合Schema和规则',
+  },
+  analyze_xml_structure: {
+    label: 'AI分析XML结构',
+    description: '使用AI分析XML文件的完整结构',
+  },
+  generate_editor_config: {
+    label: '生成编辑器配置',
+    description: '根据XML结构生成编辑器配置',
+  },
+  smart_edit: {
+    label: '智能编辑',
+    description: '基于AI理解的智能数据编辑',
+  },
+  generate_workflow: {
+    label: '生成工作流',
+    description: '根据分析和配置生成完整工作流',
+  },
+  ai_agent: {
+    label: 'AI Agent',
+    description: '智能AI代理节点，支持多输入输出和工具集成',
+  },
+  chatgpt: {
+    label: 'ChatGPT',
+    description: 'OpenAI 的 ChatGPT 模型',
+  },
+  gemini: {
+    label: 'Gemini',
+    description: 'Google 的 Gemini 模型',
+  },
+  deepseek: {
+    label: 'DeepSeek',
+    description: 'DeepSeek 国产AI模型',
+  },
+  memory: {
+    label: 'Memory',
+    description: '工作流记忆节点，存储和检索上下文信息',
   },
 }
 
@@ -113,16 +162,10 @@ const getInitialEdges = (): Edge[] => [
 ]
 
 const WorkflowEditor = () => {
-  console.log('WorkflowEditor component rendering...')
-  
   const [searchParams, setSearchParams] = useSearchParams()
   const workflowId = searchParams.get('id') // 从URL参数获取工作流ID
   const nameFromUrl = searchParams.get('name') // 从URL参数获取工作流名称
   const descriptionFromUrl = searchParams.get('description') // 从URL参数获取工作流描述
-  
-  console.log('WorkflowEditor - workflowId from URL:', workflowId)
-  console.log('WorkflowEditor - name from URL:', nameFromUrl)
-  console.log('WorkflowEditor - description from URL:', descriptionFromUrl)
   
   // 新建工作流应该从空节点开始，不是默认节点
   // 只有在加载已有工作流失败时才使用默认节点
@@ -138,18 +181,12 @@ const WorkflowEditor = () => {
   // 如果没有workflowId，立即设置为已初始化，确保界面能显示
   const [initialized, setInitialized] = useState(!workflowId)
   
-  console.log('WorkflowEditor - current state:', {
-    nodesCount: nodes.length,
-    edgesCount: edges.length,
-    initialized,
-    loading,
-    workflowId
-  })
-  
   // 节点详情面板相关状态
   const [nodeDetailVisible, setNodeDetailVisible] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedNodeData, setSelectedNodeData] = useState<any>(null)
+  // 节点执行结果映射：nodeId -> ParsedFile（全局执行上下文）
+  const [nodeExecutionResults, setNodeExecutionResults] = useState<Map<string, any>>(new Map())
   
   // 节点选择器相关状态
   const [nodeSelectorVisible, setNodeSelectorVisible] = useState(false)
@@ -281,7 +318,12 @@ const WorkflowEditor = () => {
       }
       
       if (workflow.edges && Array.isArray(workflow.edges) && workflow.edges.length > 0) {
-        setEdges(workflow.edges as Edge[])
+        // 确保所有连线都有 type: 'default'，使用 CustomEdge
+        const edgesWithType = (workflow.edges as Edge[]).map(edge => ({
+          ...edge,
+          type: edge.type || 'default', // 如果没有 type，设置为 'default'
+        }))
+        setEdges(edgesWithType)
       } else if (!(workflow as any).is_default) {
         // 如果不是默认工作流且没有边，设置为空
         setEdges([])
@@ -405,13 +447,32 @@ const WorkflowEditor = () => {
     }
     const source = connection.source as string
     const target = connection.target as string
+    
+    // 生成唯一的 edge ID（避免重复连接时 ID 冲突）
+    const edgeId = `e${source}-${target}-${Date.now()}`
+    
+    console.log('[WorkflowEditor] 创建新连线:', {
+      edgeId,
+      source,
+      target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle,
+    })
+    
     setEdges((eds) => {
       const newEdge: Edge = {
         ...connection,
-        id: `e${source}-${target}`,
+        id: edgeId,
         source,
         target,
+        type: 'default', // 确保使用 CustomEdge
+        animated: true,
+        style: { stroke: '#8c8c8c', strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
       }
+      console.log('[WorkflowEditor] 新连线已添加到 edges:', newEdge)
       return [...eds, newEdge]
     })
   }, [])
@@ -594,12 +655,20 @@ const WorkflowEditor = () => {
     }, 300)
   }, [])
   
-  // 处理节点执行
+  // 更新节点执行结果
+  const updateNodeExecutionResult = useCallback((nodeId: string, result: any) => {
+    setNodeExecutionResults(prev => {
+      const newMap = new Map(prev)
+      newMap.set(nodeId, result)
+      return newMap
+    })
+  }, [])
+  
+  // 处理节点执行（NodeDetailPanel 内部会调用执行器，这里只处理结果更新）
   const handleNodeExecute = useCallback(() => {
-    if (!selectedNodeId) return
-    message.info('节点执行功能开发中')
-    // TODO: 实现单个节点执行
-  }, [selectedNodeId])
+    // NodeDetailPanel 内部已经有执行逻辑，这里不需要额外处理
+    // 但我们需要确保结果能够更新到全局映射中
+  }, [])
   
   // 处理ReactFlow实例初始化
   const handleInit = useCallback((instance: any) => {
@@ -617,9 +686,11 @@ const WorkflowEditor = () => {
     if (!addNodePosition) return
     
     const newNodeId = `node_${Date.now()}`
+    // AI Agent 节点使用特殊的节点类型
+    const reactFlowNodeType = nodeType === 'ai_agent' ? 'ai_agent' : 'default'
     const newNode: Node = {
       id: newNodeId,
-      type: 'default',
+      type: reactFlowNodeType,
       position: addNodePosition,
       data: {
         type: nodeType,
@@ -651,22 +722,11 @@ const WorkflowEditor = () => {
     message.success(`已删除 ${nodesToDelete.length} 个节点`)
   }, [])
 
-  // 确保组件至少渲染基本结构
-  console.log('WorkflowEditor render:', { 
-    nodesCount: nodes.length, 
-    edgesCount: edges.length, 
-    initialized, 
-    loading,
-    workflowId
-  })
-  
   // 如果初始化失败，确保至少显示一些内容（使用useEffect避免在render中setState）
+  // 注意：不要将 nodes.length 作为依赖项，避免循环
   useEffect(() => {
-    console.log('WorkflowEditor - backup useEffect triggered:', { workflowId, initialized, loading, nodesCount: nodes.length })
-    
     // 如果没有workflowId且未初始化，立即初始化（新建工作流从空节点开始）
     if (!workflowId && !initialized) {
-      console.log('WorkflowEditor: 新工作流，从空节点开始')
       setNodes([])
       setEdges([])
       // 如果URL中有名称和描述，使用它们
@@ -680,31 +740,29 @@ const WorkflowEditor = () => {
       }
       setInitialized(true)
       setLoading(false)
-      console.log('WorkflowEditor: 初始化完成（空节点）')
     }
     // 如果加载已有工作流失败且没有节点，保持空节点（不设置默认节点）
-    else if (workflowId && !initialized && !loading && nodes.length === 0) {
-      console.warn('WorkflowEditor: 加载工作流失败，保持空节点状态')
-      setInitialized(true)
+    else if (workflowId && !initialized && !loading) {
+      // 只在真正失败时才设置，避免循环
+      const timer = setTimeout(() => {
+        if (nodes.length === 0) {
+          setInitialized(true)
+        }
+      }, 100)
+      return () => clearTimeout(timer)
     }
-  }, [workflowId, initialized, loading, nodes.length, nameFromUrl, descriptionFromUrl])
+  }, [workflowId, initialized, loading, nameFromUrl, descriptionFromUrl]) // 移除 nodes.length 依赖
 
-  // 渲染前的最终状态检查
-  const renderState = {
-    loading,
-    initialized,
-    nodesCount: nodes.length,
-    shouldShowLoading: loading && !initialized,
-    shouldShowCanvas: !(loading && !initialized) && nodes.length > 0,
-    shouldShowEmpty: !(loading && !initialized) && nodes.length === 0
-  }
-  
-  console.log('WorkflowEditor - render state:', renderState)
-  console.log('WorkflowEditor - will render:', {
-    loading: renderState.shouldShowLoading,
-    canvas: renderState.shouldShowCanvas,
-    empty: renderState.shouldShowEmpty
-  })
+  // 计算当前选中节点的上游结果（使用 useMemo 确保依赖更新时重新计算）
+  // 直接在这里计算，而不是依赖 getUpstreamResult，避免频繁重新计算
+  const currentUpstreamResult = useMemo(() => {
+    if (!selectedNodeId) return null
+    // 直接在这里查找上游节点，避免依赖 getUpstreamResult
+    const incomingEdge = edges.find(e => e.target === selectedNodeId)
+    if (!incomingEdge) return null
+    const upstreamNodeId = incomingEdge.source
+    return nodeExecutionResults.get(upstreamNodeId) || null
+  }, [selectedNodeId, edges, nodeExecutionResults])
 
   return (
     <div className="workflow-editor" style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -754,6 +812,10 @@ const WorkflowEditor = () => {
           onClose={handleNodeDetailClose}
           onSave={handleNodeConfigSave}
           onExecute={handleNodeExecute}
+          upstreamResult={currentUpstreamResult}
+          onExecutionResult={selectedNodeId ? (result: any) => {
+            updateNodeExecutionResult(selectedNodeId, result)
+          } : undefined}
         />
       )}
       

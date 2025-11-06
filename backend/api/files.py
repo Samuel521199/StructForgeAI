@@ -187,9 +187,20 @@ async def get_file_content(file_path: str):
 async def export_file(
     data: dict,
     output_format: str = "json",
-    filename: Optional[str] = None
+    filename: Optional[str] = None,
+    pretty_print: bool = True,
+    sort_by: Optional[str] = None
 ):
-    """导出文件"""
+    """
+    导出文件
+    
+    Args:
+        data: 要导出的数据
+        output_format: 输出格式（json, xml, yaml, csv, excel）
+        filename: 文件名（可选）
+        pretty_print: 是否美化输出（XML/JSON/YAML）
+        sort_by: 排序字段（可选，XML格式支持，如 "@attributes.id"）
+    """
     try:
         export_dir = Path(settings.EXPORT_DIR)
         export_dir.mkdir(parents=True, exist_ok=True)
@@ -204,7 +215,12 @@ async def export_file(
         parser = ParserFactory.create_parser(temp_path)
         
         if parser:
-            success = parser.export(data, output_path)
+            # 对于XML格式，传递额外参数
+            if output_format == "xml" and hasattr(parser, 'export'):
+                success = parser.export(data, output_path, pretty_print=pretty_print, sort_by=sort_by)
+            else:
+                success = parser.export(data, output_path)
+            
             if success:
                 return FileResponse(
                     str(output_path),

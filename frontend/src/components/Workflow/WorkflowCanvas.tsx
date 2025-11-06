@@ -16,11 +16,18 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { message } from 'antd'
 import WorkflowNode from './WorkflowNode'
+import AIAgentNode from './AIAgentNode'
+import { CustomEdge } from './CustomEdge'
 import WorkflowToolbar from './WorkflowToolbar'
 import './WorkflowCanvas.css'
 
 const nodeTypes = {
   default: WorkflowNode,
+  ai_agent: AIAgentNode,
+}
+
+const edgeTypes = {
+  default: CustomEdge,
 }
 
 interface WorkflowCanvasProps {
@@ -224,10 +231,42 @@ const WorkflowCanvasInner = ({
     [onEdgesStateChange]
   )
 
-  // 同步edges状态到父组件
+  // 同步edges状态到父组件（使用防抖和比较，避免循环更新）
+  const edgesUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const lastEdgesSnapshotRef = useRef<string>('')
+  
   useEffect(() => {
-    if (onEdgesChange) {
-      onEdgesChange(edges)
+    // 创建 edges 快照（只比较 id 和相关属性，不包括内部状态）
+    const edgesSnapshot = JSON.stringify(
+      edges.map(e => ({ 
+        id: e.id, 
+        source: e.source, 
+        target: e.target,
+        type: e.type,
+        style: e.style,
+        markerEnd: e.markerEnd,
+      }))
+        .sort((a, b) => a.id.localeCompare(b.id))
+    )
+    
+    // 只有当快照变化时才通知父组件
+    if (edgesSnapshot !== lastEdgesSnapshotRef.current && onEdgesChange) {
+      lastEdgesSnapshotRef.current = edgesSnapshot
+      
+      // 清除之前的定时器
+      if (edgesUpdateTimeoutRef.current) {
+        clearTimeout(edgesUpdateTimeoutRef.current)
+      }
+      // 延迟更新，避免频繁触发
+      edgesUpdateTimeoutRef.current = setTimeout(() => {
+        onEdgesChange(edges)
+      }, 100) // 100ms 防抖
+    }
+    
+    return () => {
+      if (edgesUpdateTimeoutRef.current) {
+        clearTimeout(edgesUpdateTimeoutRef.current)
+      }
     }
   }, [edges, onEdgesChange])
 
@@ -309,14 +348,27 @@ const WorkflowCanvasInner = ({
         onConnect={handleConnect}
         onNodeDoubleClick={handleNodeDoubleClick}
         onNodesDelete={handleNodesDelete}
+        onEdgesDelete={(deletedEdges) => {
+          // 处理连线删除
+          setEdges((eds) => eds.filter((e) => !deletedEdges.find((deletedEdge) => deletedEdge.id === e.id)))
+        }}
+        onEdgeClick={(event, edge) => {
+          // 处理连线点击事件
+          console.log('[WorkflowCanvas] Edge clicked:', edge.id)
+          event.stopPropagation()
+        }}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        edgesSelectable={true}
+        edgesFocusable={true}
         fitView
         minZoom={0.1}
         maxZoom={2}
         deleteKeyCode={['Backspace', 'Delete']}
         defaultEdgeOptions={{
-          type: 'smoothstep',
+          type: 'default',
           animated: true,
+          selectable: true,
           style: { stroke: '#8c8c8c', strokeWidth: 2 },
           markerEnd: {
             type: MarkerType.ArrowClosed,
@@ -327,6 +379,7 @@ const WorkflowCanvasInner = ({
           strokeWidth: 2,
           strokeDasharray: '5,5',
         }}
+        selectNodesOnDrag={false}
       >
         <Background gap={16} size={1} color="#e8e8e8" />
         <Controls />

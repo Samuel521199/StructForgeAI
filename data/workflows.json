@@ -9,26 +9,88 @@
           "id": "node_1762257883433",
           "type": "default",
           "position": {
-            "x": 653,
-            "y": 432.5
+            "x": 179.2966600325309,
+            "y": 439.0975395538645
           },
           "data": {
             "type": "parse_file",
             "label": "解析文件",
             "description": "读取并解析配置文件",
             "config": {
-              "file_path": "F:\\StructForgeAI\\data\\uploads\\SkiOL_shields.xml"
+              "file_path": "F:\\StructForgeAI\\data\\uploads\\SkiOL_arm_armors.xml"
             }
+          },
+          "width": 150,
+          "height": 165,
+          "selected": true,
+          "positionAbsolute": {
+            "x": 179.2966600325309,
+            "y": 439.0975395538645
+          },
+          "dragging": false
+        },
+        {
+          "id": "node_1762315125838",
+          "type": "default",
+          "position": {
+            "x": 720.624428803044,
+            "y": 669.700041477361
+          },
+          "data": {
+            "type": "analyze_xml_structure",
+            "label": "AI分析XML结构",
+            "description": "使用AI分析XML文件的完整结构",
+            "config": {}
           }
+        },
+        {
+          "id": "node_1762331670916",
+          "type": "ai_agent",
+          "position": {
+            "x": 982.0331209005091,
+            "y": 271.8108901568154
+          },
+          "data": {
+            "type": "ai_agent",
+            "label": "AI Agent",
+            "description": "智能AI代理节点，支持多输入输出和工具集成",
+            "config": {}
+          },
+          "width": 320,
+          "height": 80,
+          "selected": true,
+          "positionAbsolute": {
+            "x": 982.0331209005091,
+            "y": 271.8108901568154
+          },
+          "dragging": true
         }
       ],
-      "edges": [],
+      "edges": [
+        {
+          "type": "default",
+          "animated": true,
+          "selectable": true,
+          "style": {
+            "stroke": "#8c8c8c",
+            "strokeWidth": 2
+          },
+          "markerEnd": {
+            "type": "arrowclosed"
+          },
+          "source": "node_1762257883433",
+          "sourceHandle": null,
+          "target": "node_1762315125838",
+          "targetHandle": null,
+          "id": "reactflow__edge-node_1762257883433-node_1762315125838"
+        }
+      ],
       "is_active": false,
       "created_at": "2025-11-04T20:05:00.566682",
-      "updated_at": "2025-11-04T20:05:00.566682",
+      "updated_at": "2025-11-05T20:08:40.010777",
       "type": "custom"
     }
   },
   "hidden_workflows": [],
-  "updated_at": "2025-11-04T20:05:00.566682"
+  "updated_at": "2025-11-05T20:08:40.010777"
 }

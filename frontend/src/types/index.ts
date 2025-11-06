@@ -14,9 +14,44 @@ export interface UploadedFile {
 }
 
 export interface ParsedFile {
-  data: Record<string, any>
-  schema: Schema
-  file_path: string
+  data?: Record<string, any>
+  schema?: Schema
+  file_path?: string
+  hasData?: boolean
+  hasSchema?: boolean
+  hasAnalysis?: boolean
+  // AI workflow results
+  analysis?: any // XML structure analysis result
+  editor_config?: any // Editor configuration
+  generated_workflow?: any // Generated workflow definition
+  smart_edit_result?: any // Smart edit result
+  chat_model_response?: {
+    model: string
+    content: string
+    usage?: any
+    raw_response?: any
+    prompt?: string
+    model_type?: string
+  }
+  memory_result?: {
+    operation: 'store' | 'retrieve' | 'search' | 'delete'
+    memory_type?: string
+    key?: string
+    memories?: any[]
+    count?: number
+    deleted_count?: number
+    stored_at?: string
+    retrieved_at?: string
+    searched_at?: string
+    deleted_at?: string
+    query?: string
+    success?: boolean
+  }
+  validation?: {
+    valid: boolean
+    errors?: string[]
+    warnings?: string[]
+  }
 }
 
 // Schema Types

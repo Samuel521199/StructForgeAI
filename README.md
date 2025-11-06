@@ -114,29 +114,58 @@ cd StructForgeAI
 
 ### 步骤2：安装AI模型（Ollama）
 
-#### Windows
+#### 🚀 快速安装（推荐）
+
+**Windows 用户**：使用项目提供的快捷脚本一键安装
+
+**方式一：使用快速设置助手（推荐，可从任何目录运行）**
+```bash
+# 从任何目录运行，脚本会自动找到项目目录
+run_setup.bat
+```
+
+**方式二：从项目根目录运行**
+```bash
+# 切换到项目根目录
+cd F:\StructForgeAI
+
+# 1. 运行安装脚本（自动安装 Ollama 和下载模型）
+install_ollama.bat
+
+# 2. 配置后端 .env 文件
+setup_ai_config.bat
+
+# 3. 测试 AI 服务连接
+test_ai_service.bat
+```
+
+#### 📝 手动安装
+
+**Windows**:
 1. 访问 [Ollama官网](https://ollama.ai/download) 下载并安装
 2. 打开命令提示符或PowerShell
 3. 下载推荐模型：
 
 ```bash
-ollama pull qwen2.5:7b-instruct-q4
+ollama pull qwen2.5:7b-q4_0
 ```
 
-#### Linux/macOS
+**Linux/macOS**:
 ```bash
 # 安装Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 
 # 下载模型
-ollama pull qwen2.5:7b-instruct-q4
+ollama pull qwen2.5:7b-q4_0
 ```
 
 **验证安装**：
 ```bash
 ollama list
-ollama run qwen2.5:7b-instruct-q4 "你好"
+ollama run qwen2.5:7b-q4_0 "你好"
 ```
+
+> 💡 **提示**：Windows 用户推荐使用 `install_ollama.bat` 脚本，它会自动完成所有安装步骤。
 
 ### 步骤3：创建目录结构
 
@@ -166,14 +195,29 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 步骤5：配置文件（可选）
+### 步骤5：配置文件
+
+#### 🚀 快速配置（推荐）
+
+**Windows 用户**：运行配置脚本
+
+```bash
+setup_ai_config.bat
+```
+
+脚本会自动：
+- 创建 `backend/.env` 文件
+- 引导选择 AI 提供商（Ollama / LM Studio / OpenAI）
+- 设置默认配置
+
+#### 📝 手动配置
 
 创建 `backend/.env` 文件（可复制 `.env.example`）：
 
 ```env
 # AI模型配置
 AI_MODEL_PROVIDER=ollama
-AI_MODEL_NAME=qwen2.5:7b-instruct-q4
+AI_MODEL_NAME=qwen2.5:7b-q4_0
 AI_BASE_URL=http://localhost:11434
 
 # 文件存储路径（根据实际情况修改）
@@ -189,6 +233,8 @@ VECTOR_DB_TYPE=faiss
 VECTOR_DB_PATH=F:/StructForgeAI/data/vector_db
 ```
 
+> 💡 **提示**：Windows 用户推荐使用 `setup_ai_config.bat` 脚本，它会自动创建并配置 `.env` 文件。
+
 ### 步骤6：启动后端服务
 
 ```bash
@@ -203,9 +249,21 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### 步骤7：验证部署
 
+#### 🚀 快速验证（推荐）
+
+**Windows 用户**：运行测试脚本
+
+```bash
+# 测试 AI 服务连接
+test_ai_service.bat
+```
+
+#### 📝 手动验证
+
 - ✅ **健康检查**: http://localhost:8001/health
 - ✅ **API文档**: http://localhost:8001/docs（Swagger UI）
 - ✅ **ReDoc文档**: http://localhost:8001/redoc
+- ✅ **AI服务测试**: 运行 `python backend/check_ai_service.py`
 
 ---
 
@@ -378,6 +436,9 @@ StructForgeAI/
 │   └── vector_db/             # 向量数据库
 ├── templates/                 # 模板文件
 ├── logs/                      # 日志文件
+├── install_ollama.bat         # Ollama 安装脚本（Windows）
+├── setup_ai_config.bat        # AI 配置快速设置（Windows）
+├── test_ai_service.bat         # AI 服务测试脚本（Windows）
 ├── README.md                  # 项目说明
 └── setup_directories.py       # 目录初始化脚本
 ```
@@ -422,6 +483,7 @@ VECTOR_DB_TYPE=faiss
 
 ## 📚 文档
 
+- 🚀 [快速安装指南](docs/QUICK_INSTALL.md) - Windows 一键安装和配置（推荐）
 - 📘 [架构设计文档](docs/ARCHITECTURE.md) - 了解系统架构和设计理念
 - 🚀 [部署指南](docs/DEPLOYMENT.md) - RTX 4060本地部署详细步骤
 - 📊 [项目总结](docs/PROJECT_SUMMARY.md) - 项目功能与特性总结
