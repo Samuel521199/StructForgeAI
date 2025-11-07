@@ -17,6 +17,7 @@ import { ChatGPTExecutor } from './ChatGPTExecutor'
 import { GeminiExecutor } from './GeminiExecutor'
 import { DeepSeekExecutor } from './DeepSeekExecutor'
 import { MemoryExecutor } from './MemoryExecutor'
+import { AIAgentExecutor } from './AIAgentExecutor'
 
 // 执行器工厂函数类型
 type ExecutorFactory = (context: ExecutorContext) => BaseExecutor
@@ -35,6 +36,7 @@ const executorRegistry: Record<string, ExecutorFactory> = {
   gemini: (context) => new GeminiExecutor(context),
   deepseek: (context) => new DeepSeekExecutor(context),
   memory: (context) => new MemoryExecutor(context),
+  ai_agent: (context) => new AIAgentExecutor(context),
 }
 
 /**

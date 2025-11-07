@@ -105,16 +105,16 @@
   border-color: #ff4d4f !important;
 }
 
-/* 底部端口组 */
+/* 底部端口组 - 3个连接点均匀分布 */
 .ai-agent-bottom-ports {
   position: absolute;
-  bottom: -60px;
+  bottom: -50px;
   left: 0;
   right: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: flex-start;
-  padding: 0 10px;
+  padding: 0 20px;
   width: 100%;
 }
 
@@ -124,73 +124,61 @@
   align-items: center;
   gap: 4px;
   position: relative;
+  flex: 1;
+  max-width: 90px;
+}
+
+.ai-agent-port-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.ai-agent-port-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .ai-agent-port-label {
   font-size: 11px;
   color: #8c8c8c;
-  margin-top: 8px;
   white-space: nowrap;
+  text-align: center;
 }
 
-.ai-agent-add-button {
-  width: 20px;
-  height: 20px;
-  background: #1890ff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ai-agent-port-required {
+  color: #ff4d4f;
   font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  font-weight: bold;
 }
 
-.ai-agent-add-button:hover {
-  background: #40a9ff;
-  transform: scale(1.1);
+/* 端口位置调整 */
+.ai-agent-port-left {
+  align-items: flex-start;
 }
 
-.ai-agent-add-button:active {
-  transform: scale(0.95);
+.ai-agent-port-center {
+  align-items: center;
 }
 
-/* 输出端口旁边的 "+" 按钮 */
-.ai-agent-add-output-button {
+.ai-agent-port-right {
+  align-items: flex-end;
+}
+
+/* 连接状态样式 */
+.ai-agent-handle-diamond.connected {
+  background: #52c41a !important;
+  border-color: #52c41a !important;
+}
+
+.ai-agent-status-badge {
   position: absolute;
-  right: -24px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  background: #1890ff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-}
-
-.ai-agent-add-output-button:hover {
-  background: #40a9ff;
-  transform: translateY(-50%) scale(1.1);
-}
-
-.ai-agent-add-output-button:active {
-  transform: translateY(-50%) scale(0.95);
-}
-
-/* 隐藏默认的 "+" 按钮效果 */
-.ai-agent-node:hover .ai-agent-handle[data-handlepos="right"]::after {
-  display: none;
+  font-size: 16px;
+  opacity: 0.6;
 }
 

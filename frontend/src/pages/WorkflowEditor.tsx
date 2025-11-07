@@ -657,9 +657,25 @@ const WorkflowEditor = () => {
   
   // 更新节点执行结果
   const updateNodeExecutionResult = useCallback((nodeId: string, result: any) => {
+    console.log(`[WorkflowEditor] updateNodeExecutionResult: 节点ID: ${nodeId}`, result ? '有数据' : '无数据')
+    if (result) {
+      console.log(`[WorkflowEditor] updateNodeExecutionResult: 结果详情:`, {
+        hasData: !!result.data,
+        hasSchema: !!result.schema,
+        hasAnalysis: !!result.analysis,
+        hasEditorConfig: !!result.editor_config,
+        hasChatModelResponse: !!result.chat_model_response,
+        hasAiAgentOutput: !!result.ai_agent_output,
+        filePath: result.file_path,
+        keys: Object.keys(result),
+      })
+    }
     setNodeExecutionResults(prev => {
       const newMap = new Map(prev)
       newMap.set(nodeId, result)
+      console.log(`[WorkflowEditor] updateNodeExecutionResult: 更新后的Map大小: ${newMap.size}`)
+      // 打印所有已保存的节点ID
+      console.log(`[WorkflowEditor] updateNodeExecutionResult: 已保存的节点ID:`, Array.from(newMap.keys()))
       return newMap
     })
   }, [])
@@ -757,12 +773,45 @@ const WorkflowEditor = () => {
   // 直接在这里计算，而不是依赖 getUpstreamResult，避免频繁重新计算
   const currentUpstreamResult = useMemo(() => {
     if (!selectedNodeId) return null
-    // 直接在这里查找上游节点，避免依赖 getUpstreamResult
-    const incomingEdge = edges.find(e => e.target === selectedNodeId)
-    if (!incomingEdge) return null
+    
+    // 查找当前节点
+    const currentNode = nodes.find(n => n.id === selectedNodeId)
+    if (!currentNode) return null
+    
+    // 对于 AI Agent 节点，查找连接到 input 端口的边
+    // 对于其他节点，查找第一个上游边
+    let incomingEdge: Edge | undefined
+    if (currentNode.data?.type === 'ai_agent') {
+      // AI Agent 节点：查找连接到 input 端口的边
+      incomingEdge = edges.find(e => e.target === selectedNodeId && e.targetHandle === 'input')
+      if (!incomingEdge) {
+        // 如果没有找到连接到 input 端口的边，尝试查找第一个上游边（向后兼容）
+        incomingEdge = edges.find(e => e.target === selectedNodeId)
+      }
+    } else {
+      // 其他节点：查找第一个上游边
+      incomingEdge = edges.find(e => e.target === selectedNodeId)
+    }
+    
+    if (!incomingEdge) {
+      console.log(`[WorkflowEditor] currentUpstreamResult: 没有找到上游边，节点ID: ${selectedNodeId}, 节点类型: ${currentNode.data?.type}`)
+      return null
+    }
+    
     const upstreamNodeId = incomingEdge.source
-    return nodeExecutionResults.get(upstreamNodeId) || null
-  }, [selectedNodeId, edges, nodeExecutionResults])
+    const result = nodeExecutionResults.get(upstreamNodeId) || null
+    console.log(`[WorkflowEditor] currentUpstreamResult: 节点ID: ${selectedNodeId}, 上游节点ID: ${upstreamNodeId}, targetHandle: ${incomingEdge.targetHandle}, 结果:`, result ? '有数据' : '无数据')
+    if (result) {
+      console.log(`[WorkflowEditor] currentUpstreamResult 详情:`, {
+        hasData: !!result.data,
+        hasSchema: !!result.schema,
+        hasAnalysis: !!result.analysis,
+        filePath: result.file_path,
+        keys: Object.keys(result),
+      })
+    }
+    return result
+  }, [selectedNodeId, edges, nodeExecutionResults, nodes])
 
   return (
     <div className="workflow-editor" style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -816,6 +865,9 @@ const WorkflowEditor = () => {
           onExecutionResult={selectedNodeId ? (result: any) => {
             updateNodeExecutionResult(selectedNodeId, result)
           } : undefined}
+          nodes={nodes}
+          edges={edges}
+          nodeExecutionResults={nodeExecutionResults}
         />
       )}
       

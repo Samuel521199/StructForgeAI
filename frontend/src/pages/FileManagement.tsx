@@ -73,7 +73,8 @@ const FileManagement = () => {
     return `${(size / (1024 * 1024)).toFixed(2)} MB`
   }
 
-  const getFileType = (filename: string) => {
+  const getFileType = (filename: string | undefined) => {
+    if (!filename) return 'Unknown'
     const ext = filename.split('.').pop()?.toLowerCase()
     const typeMap: Record<string, string> = {
       xml: 'XML',
@@ -93,10 +94,10 @@ const FileManagement = () => {
       title: '文件名',
       dataIndex: 'filename',
       key: 'filename',
-      render: (text: string) => (
+      render: (text: string | undefined) => (
         <Space>
           <FileOutlined />
-          {text}
+          {text || '未知文件'}
         </Space>
       ),
     },
@@ -104,7 +105,7 @@ const FileManagement = () => {
       title: '类型',
       dataIndex: 'filename',
       key: 'type',
-      render: (filename: string) => (
+      render: (filename: string | undefined) => (
         <Tag color="blue">{getFileType(filename)}</Tag>
       ),
     },
@@ -112,14 +113,15 @@ const FileManagement = () => {
       title: '大小',
       dataIndex: 'size',
       key: 'size',
-      render: (size: number) => formatFileSize(size),
-      sorter: (a: UploadedFile, b: UploadedFile) => a.size - b.size,
+      render: (size: number | undefined) => formatFileSize(size || 0),
+      sorter: (a: UploadedFile, b: UploadedFile) => (a.size || 0) - (b.size || 0),
     },
     {
       title: '路径',
       dataIndex: 'path',
       key: 'path',
       ellipsis: true,
+      render: (text: string | undefined) => text || '-',
     },
     {
       title: '操作',
@@ -156,10 +158,13 @@ const FileManagement = () => {
 
           <Table
             columns={columns}
-            dataSource={uploadedFiles}
-            rowKey="filename"
+            dataSource={uploadedFiles || []}
+            rowKey={(record) => record.filename || record.path || Math.random().toString()}
             loading={loading}
             pagination={{ pageSize: 10 }}
+            locale={{
+              emptyText: '暂无文件，请上传文件'
+            }}
           />
         </Space>
       </Card>

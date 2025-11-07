@@ -103,9 +103,19 @@ export const fileApi = {
   },
 
   // 解析文件
-  parse: async (filePath: string): Promise<ParsedFile> => {
+  parse: async (
+    filePath: string,
+    options?: {
+      convert_format?: boolean
+      output_format?: string
+      skip_schema?: boolean
+    }
+  ): Promise<ParsedFile> => {
     // 调试：打印请求数据
-    const requestData = { file_path: filePath }
+    const requestData = {
+      file_path: filePath,
+      ...(options || {}),
+    }
     console.log('发送解析请求，数据:', requestData)
     // 响应拦截器已经返回了 response.data，所以这里直接返回
     return api.post('/files/parse', requestData) as Promise<ParsedFile>
@@ -316,6 +326,24 @@ export const dataApi = {
 
 // AI工作流API
 export const aiWorkflowApi = {
+  // AI Agent 执行
+  executeAIAgent: async (request: {
+    input_data: any
+    system_prompt: string
+    goal?: string
+    temperature?: number
+    max_tokens?: number
+    output_format?: string
+    data_processing_mode?: string
+    data_limit_count?: number
+    max_data_tokens?: number
+    sample_strategy?: string
+    chat_model_config: any
+    use_memory?: boolean
+    memory_config?: any
+  }): Promise<any> => {
+    return api.post('/ai-workflow/ai-agent', request)
+  },
   // 分析XML结构
   analyzeXMLStructure: async (
     xmlData: any,

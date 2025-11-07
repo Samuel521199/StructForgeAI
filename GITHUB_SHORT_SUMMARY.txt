@@ -1,0 +1,65 @@
+🎉 StructForge AI v0.1.0-alpha 发布
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【中文版】
+
+🤖 StructForge AI - AI驱动的多游戏数据工作流系统
+
+核心特性：
+• AI自主分析 - 无需模板，自动理解文件结构
+• 多格式支持 - XML、JSON、YAML、CSV、Excel、TSV
+• 本地部署 - 完全离线，保护数据隐私（RTX 4060优化）
+• 智能工作流 - 导入→分析→编辑→导出一体化
+• 自然语言编辑 - 用语言描述需求，AI自动生成配置
+
+技术栈：
+• 后端：FastAPI + Conda环境 + Ollama本地AI
+• 前端：React 18 + TypeScript + Ant Design
+• AI模型：Qwen2.5-7B（推荐，Q4量化）
+
+快速开始：
+.\start_all.bat
+
+访问地址：
+• 前端界面：http://localhost:3000
+• 后端API：http://localhost:8000
+• API文档：http://localhost:8000/docs
+
+项目状态：
+✅ 后端核心 90% | 🚧 前端 70% | ✅ AI集成 80% | ✅ 文档 85%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【English Version】
+
+🤖 StructForge AI - AI-Driven Multi-Game Data Workflow System
+
+Key Features:
+• AI Autonomous Analysis - No templates, auto-understands file structures
+• Multi-Format Support - XML, JSON, YAML, CSV, Excel, TSV
+• Local Deployment - Fully offline, data privacy protected (RTX 4060 optimized)
+• Smart Workflow - Integrated import→analysis→edit→export process
+• Natural Language Editing - Describe needs, AI generates configs
+
+Tech Stack:
+• Backend: FastAPI + Conda Environment + Ollama Local AI
+• Frontend: React 18 + TypeScript + Ant Design
+• AI Model: Qwen2.5-7B (Recommended, Q4 Quantized)
+
+Quick Start:
+.\start_all.bat
+
+Access URLs:
+• Frontend: http://localhost:3000
+• Backend:  http://localhost:8000
+• API Docs: http://localhost:8000/docs
+
+Project Status:
+✅ Backend Core 90% | 🚧 Frontend 70% | ✅ AI Integration 80% | ✅ Docs 85%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Version: v0.1.0-alpha
+Status: Alpha Testing
+

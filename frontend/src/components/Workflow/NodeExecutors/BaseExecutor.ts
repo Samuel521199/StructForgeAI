@@ -13,6 +13,8 @@ export interface ExecutorContext {
   setExecutionResult: (result: ParsedFile) => void
   setExecuting: (executing: boolean) => void
   setExecutionError: (error: string | null) => void
+  // 用于获取连接的节点信息（可选）
+  getConnectedNode?: (nodeId: string, targetHandle: string) => { node: any; result: ParsedFile | null } | null
 }
 
 export interface ExecutorResult {

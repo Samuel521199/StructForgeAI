@@ -52,14 +52,24 @@
   padding: 24px;
 }
 
-.node-detail-input,
+.node-detail-input {
+  background: #fff;
+  min-width: 400px;
+  max-width: 600px;
+  flex: 1.2; /* INPUT区域占用更多空间，支持XML显示 */
+}
+
 .node-detail-output {
   background: #fff;
+  min-width: 500px;
+  flex: 1.5; /* OUTPUT区域占用更多空间 */
 }
 
 .node-detail-config {
   background: #fafafa;
   min-width: 400px;
+  max-width: 500px;
+  flex: 1; /* CONFIG区域保持固定比例 */
 }
 
 /* 标签页样式 */

@@ -17,6 +17,82 @@ interface ValidationViewProps {
 }
 
 /**
+ * 统计XML结构信息
+ */
+const analyzeXMLStructure = (data: any): {
+  rootElement?: string
+  childElements: Record<string, number>
+  totalElements: number
+  attributes: Record<string, number>
+  maxDepth: number
+} => {
+  const stats = {
+    rootElement: undefined as string | undefined,
+    childElements: {} as Record<string, number>,
+    totalElements: 0,
+    attributes: {} as Record<string, number>,
+    maxDepth: 0,
+  }
+
+  const countElements = (obj: any, depth: number = 0, parentKey?: string): void => {
+    if (!obj || typeof obj !== 'object') return
+
+    stats.maxDepth = Math.max(stats.maxDepth, depth)
+
+    if (depth === 0 && !parentKey) {
+      // 根元素
+      const keys = Object.keys(obj).filter(k => k !== '@attributes' && k !== '#text')
+      if (keys.length > 0) {
+        stats.rootElement = keys[0]
+      }
+    }
+
+    if (Array.isArray(obj)) {
+      stats.totalElements += obj.length
+      obj.forEach((item) => {
+        if (typeof item === 'object' && item !== null) {
+          countElements(item, depth + 1, parentKey)
+        }
+      })
+      return
+    }
+
+    Object.keys(obj).forEach((key) => {
+      if (key === '@attributes') {
+        // 统计属性
+        const attrs = obj[key]
+        if (typeof attrs === 'object') {
+          Object.keys(attrs).forEach((attrKey) => {
+            stats.attributes[attrKey] = (stats.attributes[attrKey] || 0) + 1
+          })
+        }
+      } else if (key !== '#text') {
+        const value = obj[key]
+        
+        if (Array.isArray(value)) {
+          // 数组元素
+          stats.childElements[key] = (stats.childElements[key] || 0) + value.length
+          stats.totalElements += value.length
+          value.forEach((item) => {
+            if (typeof item === 'object' && item !== null) {
+              countElements(item, depth + 1, key)
+            }
+          })
+        } else if (typeof value === 'object' && value !== null) {
+          // 对象元素
+          stats.childElements[key] = (stats.childElements[key] || 0) + 1
+          stats.totalElements += 1
+          countElements(value, depth + 1, key)
+        }
+      }
+    })
+  }
+
+  countElements(data)
+  return stats
+}
+
+/**
  * 解析文件节点验证视图
  */
 const ParseFileValidationView: React.FC<{ result: ParsedFile }> = ({ result }) => {
@@ -28,34 +104,145 @@ const ParseFileValidationView: React.FC<{ result: ParsedFile }> = ({ result }) =
     ? (result.schema.properties ? Object.keys(result.schema.properties).length : 0)
     : 0
 
+  // XML结构统计
+  const isXML = result.original_format === 'xml' || result.file_path?.endsWith('.xml')
+  const xmlStats = isXML && result.data ? analyzeXMLStructure(result.data) : null
+
+  // 验证信息
+  const isValid = result.validation?.valid !== false // 如果没有验证结果，假设有效
+  const validationErrors = result.validation?.errors || []
+  const validationWarnings = result.validation?.warnings || []
+
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="large">
+      {/* 验证状态 */}
       <Alert
-        message="文件解析成功"
-        description={`已解析 ${dataCount} 条数据，识别 ${schemaFields} 个字段`}
-        type="success"
+        message={isValid ? "文件解析成功" : "文件解析存在问题"}
+        description={
+          isValid 
+            ? `已解析 ${dataCount} 条数据，识别 ${schemaFields} 个字段${xmlStats ? `，共 ${xmlStats.totalElements} 个元素` : ''}`
+            : `解析完成，但发现 ${validationErrors.length} 个错误`
+        }
+        type={isValid ? "success" : "error"}
         icon={<CheckCircleOutlined />}
         showIcon
       />
+
+      {/* 验证详情 */}
+      {validationErrors.length > 0 && (
+        <Card title="验证错误" size="small" style={{ borderColor: '#ff4d4f' }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {validationErrors.map((error, idx) => (
+              <Alert
+                key={idx}
+                message={error}
+                type="error"
+                size="small"
+                showIcon={false}
+              />
+            ))}
+          </Space>
+        </Card>
+      )}
+
+      {validationWarnings.length > 0 && (
+        <Card title="验证警告" size="small" style={{ borderColor: '#faad14' }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {validationWarnings.map((warning, idx) => (
+              <Alert
+                key={idx}
+                message={warning}
+                type="warning"
+                size="small"
+                showIcon={false}
+              />
+            ))}
+          </Space>
+        </Card>
+      )}
       
       <Card title="文件信息" size="small">
         <Descriptions column={1} size="small">
           <Descriptions.Item label="文件路径">
-            <Text code>{result.file_path}</Text>
+            <Text code style={{ fontSize: '12px' }}>{result.file_path}</Text>
           </Descriptions.Item>
-          <Descriptions.Item label="文件类型">
+          <Descriptions.Item label="原始格式">
             <Tag color="blue">
-              {result.file_path?.split('.').pop()?.toUpperCase() || '未知'}
+              {(result.original_format || result.file_path?.split('.').pop() || '未知').toUpperCase()}
             </Tag>
           </Descriptions.Item>
+          {result.output_format && (
+            <Descriptions.Item label="输出格式">
+              <Tag color="green">{result.output_format.toUpperCase()}</Tag>
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="数据项数">
             <Text strong>{dataCount}</Text>
           </Descriptions.Item>
           <Descriptions.Item label="Schema字段数">
             <Text strong>{schemaFields}</Text>
           </Descriptions.Item>
+          {xmlStats && (
+            <>
+              <Descriptions.Item label="XML根元素">
+                <Tag color="purple">{xmlStats.rootElement || '未知'}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="最大嵌套深度">
+                <Text strong>{xmlStats.maxDepth}</Text>
+              </Descriptions.Item>
+            </>
+          )}
         </Descriptions>
       </Card>
+
+      {/* XML结构统计 */}
+      {xmlStats && Object.keys(xmlStats.childElements).length > 0 && (
+        <Card title="XML结构统计" size="small">
+          <Descriptions column={1} size="small" style={{ marginBottom: '12px' }}>
+            <Descriptions.Item label="总元素数">
+              <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
+                {xmlStats.totalElements}
+              </Text>
+            </Descriptions.Item>
+          </Descriptions>
+          <Divider style={{ margin: '8px 0' }} />
+          <div style={{ marginBottom: '12px' }}>
+            <Text strong style={{ display: 'block', marginBottom: '8px' }}>子元素统计：</Text>
+            <Space wrap>
+              {Object.entries(xmlStats.childElements)
+                .sort(([, a], [, b]) => b - a)
+                .map(([elementName, count]) => (
+                  <Tag key={elementName} color="blue" style={{ fontSize: '12px', padding: '4px 8px' }}>
+                    {elementName}: <Text strong>{count}</Text>
+                  </Tag>
+                ))}
+            </Space>
+          </div>
+          {Object.keys(xmlStats.attributes).length > 0 && (
+            <>
+              <Divider style={{ margin: '8px 0' }} />
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: '8px' }}>属性统计：</Text>
+                <Space wrap>
+                  {Object.entries(xmlStats.attributes)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 10) // 只显示前10个
+                    .map(([attrName, count]) => (
+                      <Tag key={attrName} color="purple" style={{ fontSize: '12px', padding: '4px 8px' }}>
+                        {attrName}: <Text strong>{count}</Text>
+                      </Tag>
+                    ))}
+                  {Object.keys(xmlStats.attributes).length > 10 && (
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      等 {Object.keys(xmlStats.attributes).length} 个属性
+                    </Text>
+                  )}
+                </Space>
+              </div>
+            </>
+          )}
+        </Card>
+      )}
 
       <Card title="数据结构预览" size="small">
         {result.schema && (
@@ -73,9 +260,27 @@ const ParseFileValidationView: React.FC<{ result: ParsedFile }> = ({ result }) =
               borderRadius: '4px',
               fontSize: '12px',
               maxHeight: '200px',
-              overflow: 'auto'
+              overflow: 'auto',
+              marginTop: '8px'
             }}>
               {JSON.stringify(result.data[0], null, 2)}
+            </pre>
+          </div>
+        )}
+        {result.data && !Array.isArray(result.data) && typeof result.data === 'object' && (
+          <div>
+            <Text strong>数据结构：</Text>
+            <pre style={{ 
+              background: '#f5f5f5', 
+              padding: '12px', 
+              borderRadius: '4px',
+              fontSize: '12px',
+              maxHeight: '200px',
+              overflow: 'auto',
+              marginTop: '8px'
+            }}>
+              {JSON.stringify(result.data, null, 2).substring(0, 500)}
+              {JSON.stringify(result.data, null, 2).length > 500 ? '...' : ''}
             </pre>
           </div>
         )}

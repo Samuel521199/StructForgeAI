@@ -1,34 +1,36 @@
 import { memo } from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
-import { RobotOutlined, PlusOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
+import { RobotOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import './AIAgentNode.css'
 import type { NodeData } from './WorkflowNode'
 
 interface AIAgentNodeProps extends NodeProps<NodeData> {}
 
 const AIAgentNode = ({ data, selected }: AIAgentNodeProps) => {
-  const validation = data.config
-    ? (data.config.chat_model || data.config.memory || data.config.tool ? true : false)
-    : false
-  const hasError = data.status === 'failed' || !validation
+  // 验证必需连接：Chat Model 是必需的
+  const hasChatModel = data.config?.chat_model_connected || false
+  const hasError = data.status === 'failed' || !hasChatModel
 
-  // 底部端口配置
+  // 底部端口配置 - 5个连接点
   const bottomPorts = [
-    { id: 'chat_model', label: 'Chat Model*', required: true },
-    { id: 'memory', label: 'Memory', required: false },
-    { id: 'tool', label: 'Tool', required: false },
+    { id: 'chat_model', label: 'Chat Model', required: true, icon: '🤖' },
+    { id: 'memory', label: 'Memory', required: false, icon: '💾' },
+    { id: 'tool', label: 'Tool', required: false, icon: '🔧' },
   ]
 
   return (
     <div className={`ai-agent-node ${selected ? 'selected' : ''} ${hasError ? 'error' : ''}`}>
-      {/* 左侧输入端口 - 正方形 */}
+      {/* 1. 左侧输入端口 - 正方形 (Input) */}
       <Handle
         type="target"
         position={Position.Left}
         id="input"
         className="ai-agent-handle ai-agent-handle-square"
+        title="Input - 数据输入"
         style={{
           left: -6,
+          top: '50%',
+          transform: 'translateY(-50%)',
           width: 12,
           height: 12,
           background: '#262626',
@@ -51,20 +53,30 @@ const AIAgentNode = ({ data, selected }: AIAgentNodeProps) => {
           <RobotOutlined />
         </div>
 
-        {/* 右侧文本 */}
+        {/* 中间文本 */}
         <div className="ai-agent-label">
           {data.label || 'AI Agent'}
         </div>
+
+        {/* 状态指示 */}
+        {data.config?.system_prompt && (
+          <div className="ai-agent-status-badge" title="已配置系统提示词">
+            ⚙️
+          </div>
+        )}
       </div>
 
-      {/* 右侧输出端口 - 圆形 */}
+      {/* 2. 右侧输出端口 - 圆形 (Output) */}
       <Handle
         type="source"
         position={Position.Right}
         id="output"
         className="ai-agent-handle ai-agent-handle-circle"
+        title="Output - 数据输出"
         style={{
           right: -6,
+          top: '50%',
+          transform: 'translateY(-50%)',
           width: 12,
           height: 12,
           background: '#262626',
@@ -73,27 +85,30 @@ const AIAgentNode = ({ data, selected }: AIAgentNodeProps) => {
         }}
       />
 
-      {/* 底部端口组 */}
+      {/* 底部端口组 - 3个连接点 */}
       <div className="ai-agent-bottom-ports">
-        {bottomPorts.map((port) => {
-          const isConnected = data.config?.[port.id] !== undefined
+        {bottomPorts.map((port, index) => {
+          // 检查连接状态（通过检查是否有对应的配置或连接）
+          const isConnected = data.config?.[`${port.id}_connected`] || false
           const isRequired = port.required && !isConnected
+          const position = index === 0 ? 'left' : index === 1 ? 'center' : 'right'
 
           return (
-            <div key={port.id} className="ai-agent-bottom-port-group">
-              {/* 菱形端口 */}
+            <div key={port.id} className={`ai-agent-bottom-port-group ai-agent-port-${position}`}>
+              {/* 3/4/5. 底部端口 - 菱形 (Chat Model / Memory / Tool) */}
               <Handle
                 type="target"
                 position={Position.Bottom}
                 id={port.id}
-                className={`ai-agent-handle ai-agent-handle-diamond ${isRequired ? 'required' : ''}`}
+                className={`ai-agent-handle ai-agent-handle-diamond ${isRequired ? 'required' : ''} ${isConnected ? 'connected' : ''}`}
+                title={`${port.label} - ${port.id === 'chat_model' ? '连接大模型节点' : port.id === 'memory' ? '连接记忆节点' : '连接工具节点'}`}
                 style={{
                   bottom: -6,
                   left: '50%',
                   marginLeft: -6,
                   width: 12,
                   height: 12,
-                  background: isConnected ? '#262626' : '#d9d9d9',
+                  background: isConnected ? '#262626' : isRequired ? '#ff4d4f' : '#d9d9d9',
                   border: '2px solid #fff',
                   borderRadius: 0,
                   transform: 'rotate(45deg)',
@@ -101,38 +116,18 @@ const AIAgentNode = ({ data, selected }: AIAgentNodeProps) => {
                 }}
               />
 
-              {/* 端口标签 */}
-              <div className="ai-agent-port-label">{port.label}</div>
-
-              {/* 添加按钮 */}
-              <button
-                className="ai-agent-add-button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  // TODO: 打开配置对话框
-                  console.log(`Add ${port.id}`)
-                }}
-                title={`添加 ${port.label}`}
-              >
-                <PlusOutlined />
-              </button>
+              {/* 端口图标和标签 */}
+              <div className="ai-agent-port-content">
+                <span className="ai-agent-port-icon">{port.icon}</span>
+                <span className="ai-agent-port-label">{port.label}</span>
+                {port.required && (
+                  <span className="ai-agent-port-required">*</span>
+                )}
+              </div>
             </div>
           )
         })}
       </div>
-
-      {/* 右侧输出端口旁边的 "+" 按钮 */}
-      <button
-        className="ai-agent-add-output-button"
-        onClick={(e) => {
-          e.stopPropagation()
-          // TODO: 添加输出连接
-          console.log('Add output connection')
-        }}
-        title="添加输出连接"
-      >
-        <PlusOutlined />
-      </button>
     </div>
   )
 }

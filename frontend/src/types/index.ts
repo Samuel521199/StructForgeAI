@@ -14,9 +14,11 @@ export interface UploadedFile {
 }
 
 export interface ParsedFile {
-  data?: Record<string, any>
+  data?: Record<string, any> | any[] // 支持对象或数组（table格式）
   schema?: Schema
   file_path?: string
+  original_format?: string // 原始文件格式（xml, json, yaml等）
+  output_format?: string // 输出格式（json, table, schema, xml, yaml, csv等）
   hasData?: boolean
   hasSchema?: boolean
   hasAnalysis?: boolean
@@ -31,8 +33,12 @@ export interface ParsedFile {
     usage?: any
     raw_response?: any
     prompt?: string
+    system_prompt?: string
     model_type?: string
   }
+  ai_agent_output?: string // AI Agent 的原始输出（来自 Chat Model 的回答）
+  error?: string // 执行错误信息
+  executionError?: string // 执行错误信息（别名）
   memory_result?: {
     operation: 'store' | 'retrieve' | 'search' | 'delete'
     memory_type?: string

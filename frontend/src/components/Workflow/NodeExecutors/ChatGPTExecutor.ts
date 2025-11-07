@@ -17,11 +17,23 @@ export class ChatGPTExecutor extends BaseExecutor {
       // 获取配置
       const apiKey = form.getFieldValue('api_key')
       const apiUrl = form.getFieldValue('api_url')
-      const model = form.getFieldValue('model') || 'gpt-3.5-turbo'
+      const model = form.getFieldValue('model') || 'gpt-5-nano'
       const requestHeaders = form.getFieldValue('request_headers')
-      const requestBody = form.getFieldValue('request_body')
+      let requestBody = form.getFieldValue('request_body')
       const timeout = form.getFieldValue('timeout') || 60
       const maxRetries = form.getFieldValue('max_retries') || 3
+      
+      // 获取输入模式和相关参数
+      const inputMode = form.getFieldValue('input_mode') || 'simple'
+      const inputText = form.getFieldValue('input')
+      const instructions = form.getFieldValue('instructions')
+      const reasoningEnabled = form.getFieldValue('reasoning_enabled')
+      const reasoningEffort = form.getFieldValue('reasoning_effort')
+      const promptId = form.getFieldValue('prompt_id')
+      const promptVersion = form.getFieldValue('prompt_version')
+      const promptVariables = form.getFieldValue('prompt_variables')
+      const temperature = form.getFieldValue('temperature')
+      const maxTokens = form.getFieldValue('max_tokens')
       
       // 获取 prompt（优先从表单，如果没有则从上游节点数据）
       let prompt = form.getFieldValue('prompt')
@@ -52,23 +64,78 @@ export class ChatGPTExecutor extends BaseExecutor {
         return { success: false, error: '请配置请求体（JSON格式）' }
       }
       
-      // 如果请求体中没有 model，自动添加
-      // 同时确保 messages 数组格式正确
+      // 构建请求体（支持 Responses API 格式）
       try {
         const bodyObj = JSON.parse(requestBody)
+        
+        // 确保 model 存在
         if (!bodyObj.model) {
           bodyObj.model = model
         }
-        // 确保 messages 数组存在且格式正确
-        if (!bodyObj.messages || !Array.isArray(bodyObj.messages)) {
-          bodyObj.messages = [{ role: 'user', content: '${PROMPT}' }]
+        
+        // 处理 input 参数
+        if (inputMode === 'simple') {
+          // 简单文本模式
+          if (inputText && inputText.trim() !== '') {
+            // 替换 ${PROMPT} 变量
+            bodyObj.input = inputText.replace(/\$\{PROMPT\}/g, prompt)
+          } else {
+            bodyObj.input = prompt
+          }
+        } else {
+          // 消息数组模式
+          const messages = form.getFieldValue('messages') || []
+          if (Array.isArray(messages) && messages.length > 0) {
+            // 构建消息数组，替换变量
+            bodyObj.input = messages.map((msg: any) => ({
+              role: msg.role || 'user',
+              content: msg.content
+                .replace(/\$\{PROMPT\}/g, prompt)
+                .replace(/\$\{INSTRUCTIONS\}/g, instructions || '')
+            }))
+          } else {
+            // 如果没有配置消息，使用默认格式
+            bodyObj.input = [
+              ...(instructions ? [{ role: 'developer', content: instructions }] : []),
+              { role: 'user', content: prompt }
+            ]
+          }
         }
-        // 如果 temperature 在表单中配置了，添加到请求体
-        const temperature = form.getFieldValue('temperature')
+        
+        // 添加 instructions 参数（如果配置了）
+        if (instructions && instructions.trim() !== '') {
+          bodyObj.instructions = instructions
+        }
+        
+        // 添加 reasoning 参数（如果启用了推理模式）
+        if (reasoningEnabled) {
+          bodyObj.reasoning = {
+            effort: reasoningEffort || 'low'
+          }
+        }
+        
+        // 添加 prompt 参数（如果配置了可重用提示词模板）
+        if (promptId && promptId.trim() !== '') {
+          bodyObj.prompt = {
+            id: promptId,
+            ...(promptVersion ? { version: promptVersion } : {}),
+            ...(promptVariables ? { variables: JSON.parse(promptVariables) } : {})
+          }
+        }
+        
+        // 添加 temperature（如果配置了）
+        // 注意：OpenAI Responses API 不支持 max_tokens 参数
         if (temperature !== undefined && temperature !== null) {
           bodyObj.temperature = temperature
         }
-        form.setFieldValue('request_body', JSON.stringify(bodyObj, null, 2))
+        // 移除 max_tokens，因为 Responses API 不支持此参数
+        // if (maxTokens !== undefined && maxTokens !== null) {
+        //   bodyObj.max_tokens = maxTokens
+        // }
+        
+        // 更新请求体
+        requestBody = JSON.stringify(bodyObj, null, 2)
+        form.setFieldValue('request_body', requestBody)
       } catch (e) {
         // 忽略 JSON 解析错误，会在后面验证
       }

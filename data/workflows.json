@@ -30,38 +30,79 @@
           "dragging": false
         },
         {
-          "id": "node_1762315125838",
-          "type": "default",
-          "position": {
-            "x": 720.624428803044,
-            "y": 669.700041477361
-          },
-          "data": {
-            "type": "analyze_xml_structure",
-            "label": "AI分析XML结构",
-            "description": "使用AI分析XML文件的完整结构",
-            "config": {}
-          }
-        },
-        {
           "id": "node_1762331670916",
           "type": "ai_agent",
           "position": {
-            "x": 982.0331209005091,
-            "y": 271.8108901568154
+            "x": 502.4690984574719,
+            "y": 369.89849865813784
           },
           "data": {
             "type": "ai_agent",
             "label": "AI Agent",
             "description": "智能AI代理节点，支持多输入输出和工具集成",
-            "config": {}
+            "config": {
+              "config": {
+                "system_prompt": "你是XML数据结构分析专家。分析XML数据，识别枚举值、布尔值、数值范围和字段关联关系。只返回JSON格式结果，不要解释性文字。",
+                "temperature": 0.3,
+                "goal": "分析XML数据，提取以下信息并以JSON格式返回：\n\n{\n  \"enum_fields\": {\"字段名\": [\"值1\", \"值2\"]},\n  \"boolean_fields\": [\"字段1\", \"字段2\"],\n  \"numeric_ranges\": {\"字段名\": {\"min\": 0, \"max\": 10, \"default\": 5, \"typical\": 5}},\n  \"field_relationships\": [{\"field1\": \"字段1\", \"field2\": \"字段2\", \"relation_type\": \"对应\", \"relation_rules\": {}}],\n  \"required_fields\": [\"id\", \"name\"],\n  \"optional_fields\": [],\n  \"validation_rules\": {},\n  \"edit_suggestions\": {},\n  \"structure\": \"结构描述\",\n  \"fields\": [{\"name\": \"字段名\", \"type\": \"enum|boolean|number|string\"}],\n  \"edit_paths\": [\"Items.Item\"]\n}\n\n只返回JSON，不要其他内容。",
+                "output_format": "json",
+                "use_memory": false,
+                "tool_enabled": false,
+                "data_processing": "direct",
+                "max_tokens": 2000
+              }
+            }
           },
           "width": 320,
           "height": 80,
-          "selected": true,
+          "selected": false,
           "positionAbsolute": {
-            "x": 982.0331209005091,
-            "y": 271.8108901568154
+            "x": 839.7806478481265,
+            "y": 273.4273955324106
+          },
+          "dragging": true
+        },
+        {
+          "id": "node_1762400531043",
+          "type": "default",
+          "position": {
+            "x": 417.1952062426758,
+            "y": 592.622792339541
+          },
+          "data": {
+            "type": "chatgpt",
+            "label": "ChatGPT",
+            "description": "OpenAI 的 ChatGPT 模型",
+            "config": {}
+          },
+          "selected": false,
+          "width": 150,
+          "height": 165,
+          "positionAbsolute": {
+            "x": 417.1952062426758,
+            "y": 592.622792339541
+          },
+          "dragging": true
+        },
+        {
+          "id": "node_1762419757442",
+          "type": "default",
+          "position": {
+            "x": 753.8665412879924,
+            "y": 602.8887852281553
+          },
+          "data": {
+            "type": "generate_editor_config",
+            "label": "生成编辑器配置",
+            "description": "根据XML结构生成编辑器配置",
+            "config": {}
+          },
+          "width": 150,
+          "height": 162,
+          "selected": false,
+          "positionAbsolute": {
+            "x": 753.8665412879924,
+            "y": 602.8887852281553
           },
           "dragging": true
         }
@@ -78,19 +119,53 @@
           "markerEnd": {
             "type": "arrowclosed"
           },
+          "source": "node_1762400531043",
+          "sourceHandle": null,
+          "target": "node_1762331670916",
+          "targetHandle": "chat_model",
+          "id": "enode_1762400531043-node_1762331670916-1762400535156"
+        },
+        {
+          "type": "default",
+          "animated": true,
+          "selectable": true,
+          "style": {
+            "stroke": "#8c8c8c",
+            "strokeWidth": 2
+          },
+          "markerEnd": {
+            "type": "arrowclosed"
+          },
           "source": "node_1762257883433",
           "sourceHandle": null,
-          "target": "node_1762315125838",
+          "target": "node_1762331670916",
+          "targetHandle": "input",
+          "id": "enode_1762257883433-node_1762331670916-1762418842750"
+        },
+        {
+          "type": "default",
+          "animated": true,
+          "selectable": true,
+          "style": {
+            "stroke": "#8c8c8c",
+            "strokeWidth": 2
+          },
+          "markerEnd": {
+            "type": "arrowclosed"
+          },
+          "source": "node_1762331670916",
+          "sourceHandle": "output",
+          "target": "node_1762419757442",
           "targetHandle": null,
-          "id": "reactflow__edge-node_1762257883433-node_1762315125838"
+          "id": "enode_1762331670916-node_1762419757442-1762419762273"
         }
       ],
       "is_active": false,
       "created_at": "2025-11-04T20:05:00.566682",
-      "updated_at": "2025-11-05T20:08:40.010777",
+      "updated_at": "2025-11-06T17:03:32.951137",
       "type": "custom"
     }
   },
   "hidden_workflows": [],
-  "updated_at": "2025-11-05T20:08:40.010777"
+  "updated_at": "2025-11-06T17:03:32.951137"
 }

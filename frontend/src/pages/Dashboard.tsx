@@ -7,6 +7,7 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { fileApi, workflowApi } from '@/services/api'
 import { useAppStore } from '@/store/useAppStore'
 import type { UploadedFile, WorkflowExecution } from '@/types'
@@ -14,6 +15,7 @@ import type { UploadedFile, WorkflowExecution } from '@/types'
 const { Title, Paragraph } = Typography
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [fileCount, setFileCount] = useState(0)
   const [schemaCount, setSchemaCount] = useState(0)
   const [workflowCount, setWorkflowCount] = useState(0)
@@ -67,12 +69,31 @@ const Dashboard = () => {
     return <Tag color={colorMap[status] || 'default'}>{status}</Tag>
   }
 
+  const handleFileClick = (file: UploadedFile) => {
+    // 跳转到文件管理页面
+    navigate('/files')
+  }
+
+  const handleWorkflowClick = (workflow: WorkflowExecution) => {
+    // 跳转到工作流编辑器
+    if (workflow.workflow_id) {
+      navigate(`/workflow/editor?id=${workflow.workflow_id}`)
+    } else {
+      // 如果没有 workflow_id，跳转到工作流列表页面
+      navigate('/workflow')
+    }
+  }
+
   return (
     <div>
       <Title level={2}>仪表盘</Title>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={8}>
-          <Card>
+          <Card
+            hoverable
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate('/files')}
+          >
             <Statistic
               title="已上传文件"
               value={fileCount}
@@ -83,7 +104,11 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card>
+          <Card
+            hoverable
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate('/schema')}
+          >
             <Statistic
               title="Schema分析"
               value={schemaCount}
@@ -93,7 +118,11 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card>
+          <Card
+            hoverable
+            style={{ cursor: 'pointer' }}
+            onClick={() => navigate('/workflow')}
+          >
             <Statistic
               title="可用工作流"
               value={workflowCount}
@@ -111,7 +140,10 @@ const Dashboard = () => {
               <List
                 dataSource={recentFiles}
                 renderItem={(file) => (
-                  <List.Item>
+                  <List.Item
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleFileClick(file)}
+                  >
                     <Space>
                       <FileOutlined />
                       <span>{file.filename}</span>
@@ -131,7 +163,10 @@ const Dashboard = () => {
               <List
                 dataSource={recentWorkflows}
                 renderItem={(workflow) => (
-                  <List.Item>
+                  <List.Item
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleWorkflowClick(workflow)}
+                  >
                     <Space>
                       {workflow.status === 'completed' ? (
                         <CheckCircleOutlined style={{ color: '#52c41a' }} />

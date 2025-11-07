@@ -17,6 +17,7 @@ import { ChatGPTConfig } from './ChatGPTConfig'
 import { GeminiConfig } from './GeminiConfig'
 import { DeepSeekConfig } from './DeepSeekConfig'
 import { MemoryConfig } from './MemoryConfig'
+import AIAgentConfig from './AIAgentConfig'
 
 // 配置组件属性接口
 export interface NodeConfigProps {
@@ -25,6 +26,10 @@ export interface NodeConfigProps {
   setFilePathValue?: (value: string) => void
   onFileSelect?: (fieldName: 'file_path' | 'output_path') => void
   onConfigChange?: () => void
+  // 工作流图信息（用于检测连接的节点）
+  nodes?: any[]
+  edges?: any[]
+  nodeId?: string
 }
 
 // 配置组件类型
@@ -44,6 +49,7 @@ const configRegistry: Partial<Record<NodeType, ConfigComponent>> = {
   gemini: GeminiConfig,
   deepseek: DeepSeekConfig,
   memory: MemoryConfig,
+  ai_agent: AIAgentConfig,
   // 其他节点配置组件将在后续添加
 }
 

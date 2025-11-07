@@ -1,52 +1,35 @@
-# Web框架
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
-
-# 数据解析
-lxml==4.9.3
+lxml>=4.9.3
 pydantic==2.5.0
 pydantic-settings==2.1.0
 pyyaml==6.0.1
 jsonschema==4.20.0
 xmltodict==0.13.0
-openpyxl==3.1.2  # Excel支持
-pandas==2.1.3  # 可选，用于高级数据处理
-
-# AI模型集成
+openpyxl==3.1.2
+pandas==2.1.3
 ollama==0.1.4
-openai==1.3.5
+openai>=1.12.0
 langchain==0.0.340
 langchain-community==0.0.8
-requests==2.31.0  # API调用
-
-# 向量数据库
-faiss-cpu==1.7.4  # 或 faiss-gpu (如果有GPU)
+requests==2.31.0
+faiss-cpu==1.7.4
 chromadb==0.4.18
 sentence-transformers==2.2.2
 numpy==1.24.3
-
-# 数据库
 sqlalchemy==2.0.23
 alembic==1.12.1
 aiosqlite==0.19.0
-psycopg2-binary==2.9.9  # PostgreSQL驱动
-pymysql==1.1.0  # MySQL驱动
-
-# 工具
+psycopg2-binary==2.9.9
+pymysql==1.1.0
 python-dotenv==1.0.0
 networkx==3.2.1
-
-# 异步处理（可选）
 celery==5.3.4
 redis==5.0.1
-
-# 工具类
 click==8.1.7
 tqdm==4.66.1
 colorlog==6.8.0
-
-# 开发工具
 pytest==7.4.3
 pytest-asyncio==0.21.1
 black==23.11.0

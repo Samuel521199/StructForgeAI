@@ -10,6 +10,8 @@ import {
   FolderOpenOutlined,
   FileSyncOutlined,
   CheckCircleOutlined,
+  FileOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons'
 import type { NodeType } from './WorkflowNode'
 import { fileApi } from '@/services/api'
@@ -76,9 +78,8 @@ const FileContentPreview = ({ filePath }: { filePath: string }) => {
     return <Text type="secondary" style={{ fontSize: '12px' }}>暂无内容</Text>
   }
 
-  // 限制显示内容长度（前5000字符）
-  const displayContent = content.length > 5000 ? content.substring(0, 5000) + '...' : content
-  const maxLines = 20
+  // 限制显示内容长度（增加到20000字符，适应更宽的界面）
+  const displayContent = content.length > 20000 ? content.substring(0, 20000) + '...' : content
 
   return (
     <pre style={{
@@ -86,18 +87,19 @@ const FileContentPreview = ({ filePath }: { filePath: string }) => {
       padding: '12px',
       borderRadius: '4px',
       overflow: 'auto',
-      maxHeight: `${maxLines * 1.5}em`,
-      fontSize: '11px',
+      maxHeight: '600px',
+      fontSize: '12px',
       fontFamily: 'monospace',
       lineHeight: '1.5',
       margin: 0,
       whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word'
+      wordBreak: 'break-word',
+      width: '100%'
     }}>
       {displayContent}
-      {content.length > 5000 && (
-        <div style={{ marginTop: '8px', color: '#8c8c8c', fontSize: '10px' }}>
-          文件过长，仅显示前 5000 字符（共 {content.length} 字符）
+      {content.length > 20000 && (
+        <div style={{ marginTop: '8px', color: '#8c8c8c', fontSize: '11px', padding: '8px', background: '#fff', borderRadius: '4px' }}>
+          文件过长，仅显示前 20,000 字符（共 {content.length.toLocaleString()} 字符）
         </div>
       )}
     </pre>
@@ -121,6 +123,9 @@ interface NodeDetailPanelProps {
   onExecute?: () => void
   upstreamResult?: ParsedFile | null  // 上游节点的执行结果
   onExecutionResult?: (result: ParsedFile) => void  // 执行结果回调
+  nodes?: any[]  // 工作流节点列表（用于查找连接的节点）
+  edges?: any[]  // 工作流边列表（用于查找连接的节点）
+  nodeExecutionResults?: Map<string, any>  // 节点执行结果映射（用于获取连接节点的执行结果）
 }
 
 // 获取输入数据（根据节点类型和配置）
@@ -171,6 +176,31 @@ const getInputData = (nodeType: NodeType, config?: Record<string, any>, upstream
           }
         }
       }
+    case 'ai_agent':
+      // AI Agent 节点：显示上游节点的输出数据
+      if (upstreamResult) {
+        return {
+          data: upstreamResult.data,
+          schema: upstreamResult.schema,
+          file_path: upstreamResult.file_path,
+          original_format: upstreamResult.original_format,
+          output_format: upstreamResult.output_format,
+          analysis: upstreamResult.analysis,
+          editor_config: upstreamResult.editor_config,
+        }
+      }
+      // 如果没有上游数据，返回提示信息
+      return {
+        schema: {
+          type: 'object',
+          properties: {
+            data: { type: 'any' }
+          }
+        },
+        data: {
+          data: '来自上游节点的数据'
+        }
+      }
     default:
       // 对于非触发节点，如果有上游数据，返回上游数据
       if (upstreamResult) {
@@ -178,6 +208,8 @@ const getInputData = (nodeType: NodeType, config?: Record<string, any>, upstream
           data: upstreamResult.data,
           schema: upstreamResult.schema,
           file_path: upstreamResult.file_path,
+          original_format: upstreamResult.original_format,
+          output_format: upstreamResult.output_format,
           analysis: upstreamResult.analysis,
           editor_config: upstreamResult.editor_config,
         }
@@ -196,58 +228,6 @@ const getInputData = (nodeType: NodeType, config?: Record<string, any>, upstream
   }
 }
 
-// 模拟输出数据
-const getMockOutputData = (nodeType: NodeType) => {
-  switch (nodeType) {
-    case 'parse_file':
-      return {
-        schema: {
-          type: 'object',
-          properties: {
-            parsed_data: { type: 'object' },
-            file_type: { type: 'string' }
-          }
-        },
-        data: {
-          parsed_data: {
-            name: '解析后的数据',
-            items: ['item1', 'item2']
-          },
-          file_type: 'xml'
-        }
-      }
-    case 'analyze_schema':
-      return {
-        schema: {
-          type: 'object',
-          properties: {
-            schema_analysis: { type: 'object' },
-            depth: { type: 'number' }
-          }
-        },
-        data: {
-          schema_analysis: {
-            structure: 'nested',
-            complexity: 'medium'
-          },
-          depth: 3
-        }
-      }
-    default:
-      return {
-        schema: {
-          type: 'object',
-          properties: {
-            result: { type: 'any' }
-          }
-        },
-        data: {
-          result: '处理后的数据'
-        }
-      }
-  }
-}
-
 const NodeDetailPanel = ({
   open,
   nodeId: _nodeId,
@@ -257,10 +237,13 @@ const NodeDetailPanel = ({
   onExecute,
   upstreamResult,
   onExecutionResult,
+  nodes = [],
+  edges = [],
+  nodeExecutionResults = new Map(),
 }: NodeDetailPanelProps) => {
   const [form] = Form.useForm()
-  const [activeInputTab, setActiveInputTab] = useState<'schema' | 'table' | 'json'>('schema')
-  const [activeOutputTab, setActiveOutputTab] = useState<'schema' | 'table' | 'json' | 'workflow' | 'validation'>('validation')
+  const [activeInputTab, setActiveInputTab] = useState<'schema' | 'table' | 'json' | 'xml'>('schema')
+  const [activeOutputTab, setActiveOutputTab] = useState<'schema' | 'table' | 'json' | 'xml' | 'workflow' | 'validation'>('validation')
   const [activeConfigTab, setActiveConfigTab] = useState<'parameters' | 'settings'>('parameters')
   // 用于跟踪文件路径，确保显示
   const [filePathValue, setFilePathValue] = useState<string>('')
@@ -270,6 +253,17 @@ const NodeDetailPanel = ({
   const [executionError, setExecutionError] = useState<string | null>(null)
   // 当前配置值（从表单获取，用于实时更新INPUT显示）
   const [currentConfig, setCurrentConfig] = useState<Record<string, any>>({})
+  
+  // 从全局执行结果中恢复当前节点的执行结果（如果存在）
+  useEffect(() => {
+    if (open && _nodeId && nodeExecutionResults.has(_nodeId)) {
+      const savedResult = nodeExecutionResults.get(_nodeId)
+      if (savedResult) {
+        console.log(`[NodeDetailPanel] 从全局执行结果恢复，节点ID: ${_nodeId}`, savedResult ? '有数据' : '无数据')
+        setExecutionResult(savedResult)
+      }
+    }
+  }, [open, _nodeId, nodeExecutionResults])
 
   // INPUT 数据：只显示输入（来自上游节点）
   // 对于触发节点，显示配置；对于非触发节点，显示上游节点的输出
@@ -277,35 +271,129 @@ const NodeDetailPanel = ({
   
   // OUTPUT 数据：只显示当前节点的执行结果（不包含上游数据）
   // 执行后，显示当前节点新增的数据（如 analysis, editor_config 等）
-  const outputData = executionResult ? {
+  const outputData = executionResult ? (() => {
     // 根据节点类型显示不同的输出
-    ...(nodeData?.type === 'parse_file' ? {
+    if (nodeData?.type === 'parse_file') {
+      return {
+        data: executionResult.data,
+        schema: executionResult.schema,
+        file_path: executionResult.file_path,
+        original_format: executionResult.original_format,
+        output_format: executionResult.output_format,
+      }
+    }
+    if (nodeData?.type === 'analyze_xml_structure') {
+      return {
+        analysis: executionResult.analysis,
+      }
+    }
+    if (nodeData?.type === 'generate_editor_config') {
+      return {
+        editor_config: executionResult.editor_config,
+      }
+    }
+    if (nodeData?.type === 'smart_edit') {
+      return {
+        smart_edit_result: executionResult.smart_edit_result,
+      }
+    }
+    if (nodeData?.type === 'generate_workflow') {
+      return {
+        generated_workflow: executionResult.generated_workflow,
+      }
+    }
+    // AI Agent 节点：显示 Chat Model 的回答和处理后的数据
+    if (nodeData?.type === 'ai_agent') {
+      const result: any = {}
+      
+      // Chat Model 的原始回答（优先显示，这是AI Agent的主要输出）
+      if (executionResult.ai_agent_output) {
+        result.ai_agent_output = executionResult.ai_agent_output
+      } else if (executionResult.chat_model_response?.content) {
+        result.ai_agent_output = executionResult.chat_model_response.content
+      }
+      
+      // 完整的 Chat Model 响应信息（必需，用于显示模型信息）
+      if (executionResult.chat_model_response) {
+        result.chat_model_response = executionResult.chat_model_response
+      }
+      
+      // 处理后的数据（如果有）
+      if (executionResult.data !== undefined && executionResult.data !== null) {
+        result.data = executionResult.data
+      }
+      
+      // 输出格式
+      if (executionResult.output_format) {
+        result.output_format = executionResult.output_format
+      }
+      
+      // 保留上游数据（用于上下文）
+      if (executionResult.file_path) {
+        result.file_path = executionResult.file_path
+      }
+      if (executionResult.schema) {
+        result.schema = executionResult.schema
+      }
+      if (executionResult.analysis) {
+        result.analysis = executionResult.analysis
+      }
+      
+      // 确保至少有一些内容可以显示（即使只有chat_model_response）
+      // 如果没有ai_agent_output但有chat_model_response，至少返回chat_model_response
+      if (Object.keys(result).length === 0 && executionResult.chat_model_response) {
+        result.chat_model_response = executionResult.chat_model_response
+        if (executionResult.ai_agent_output) {
+          result.ai_agent_output = executionResult.ai_agent_output
+        } else if (executionResult.chat_model_response.content) {
+          result.ai_agent_output = executionResult.chat_model_response.content
+        }
+      }
+      
+      return result
+    }
+    // 通用输出
+    return {
       data: executionResult.data,
       schema: executionResult.schema,
-      file_path: executionResult.file_path,
-    } : {}),
-    ...(nodeData?.type === 'analyze_xml_structure' ? {
-      analysis: executionResult.analysis,
-    } : {}),
-    ...(nodeData?.type === 'generate_editor_config' ? {
-      editor_config: executionResult.editor_config,
-    } : {}),
-    ...(nodeData?.type === 'smart_edit' ? {
-      smart_edit_result: executionResult.smart_edit_result,
-    } : {}),
-    ...(nodeData?.type === 'generate_workflow' ? {
-      generated_workflow: executionResult.generated_workflow,
-    } : {}),
-    // 通用输出（如果节点执行后没有特定输出，显示通用数据）
-    ...(nodeData?.type !== 'parse_file' && 
-        nodeData?.type !== 'analyze_xml_structure' && 
-        nodeData?.type !== 'generate_editor_config' &&
-        nodeData?.type !== 'smart_edit' &&
-        nodeData?.type !== 'generate_workflow' ? {
-      data: executionResult.data,
-      schema: executionResult.schema,
-    } : {}),
-  } : null
+      output_format: executionResult.output_format,
+    }
+  })() : null
+  
+  // 根据输出格式自动选择OUTPUT标签页
+  useEffect(() => {
+    if (executionResult?.output_format) {
+      const format = executionResult.output_format
+      if (format === 'table') {
+        setActiveOutputTab('table')
+      } else if (format === 'schema') {
+        setActiveOutputTab('schema')
+      } else if (format === 'xml') {
+        setActiveOutputTab('xml')
+      } else if (format === 'json' || !format) {
+        setActiveOutputTab('json')
+      }
+    }
+  }, [executionResult?.output_format])
+
+  // 根据上游节点的输出格式自动选择INPUT标签页
+  useEffect(() => {
+    if (upstreamResult?.output_format) {
+      const format = upstreamResult.output_format
+      if (format === 'table') {
+        setActiveInputTab('table')
+      } else if (format === 'schema') {
+        setActiveInputTab('schema')
+      } else if (format === 'xml') {
+        setActiveInputTab('xml')
+      } else if (format === 'json' || !format) {
+        setActiveInputTab('json')
+      }
+    } else if (upstreamResult?.original_format === 'xml' || upstreamResult?.file_path?.endsWith('.xml')) {
+      // 如果上游是XML文件但没有指定output_format，也显示XML标签页
+      setActiveInputTab('xml')
+    }
+  }, [upstreamResult?.output_format, upstreamResult?.original_format, upstreamResult?.file_path])
   
   // 调试日志
   useEffect(() => {
@@ -339,25 +427,213 @@ const NodeDetailPanel = ({
     if (open && nodeData) {
       const config = nodeData.config || {}
       const initialFilePath = config.file_path || ''
-      form.setFieldsValue({
-        label: nodeData.label,
-        description: nodeData.description || '',
-        ...config,
-      })
-      // 同步文件路径状态和当前配置
+      
+      // 对于 AI Agent 节点，自动检测连接的节点
+      if (nodeData.type === 'ai_agent' && _nodeId) {
+        // 检测 Chat Model 连接
+        const chatModelEdge = edges.find(
+          (edge) => edge.target === _nodeId && edge.targetHandle === 'chat_model'
+        )
+        const chatModelConnected = !!chatModelEdge
+        const chatModelNode = chatModelConnected 
+          ? nodes.find((node) => node.id === chatModelEdge.source)
+          : null
+        
+        // 检测 Memory 连接
+        const memoryEdge = edges.find(
+          (edge) => edge.target === _nodeId && edge.targetHandle === 'memory'
+        )
+        const memoryConnected = !!memoryEdge
+        
+        // 检测 Tool 连接
+        const toolEdge = edges.find(
+          (edge) => edge.target === _nodeId && edge.targetHandle === 'tool'
+        )
+        const toolConnected = !!toolEdge
+        
+        // 获取连接的节点信息
+        const chatModelNodeInfo = chatModelNode ? {
+          id: chatModelNode.id,
+          type: chatModelNode.data?.type || chatModelNode.type,
+          label: chatModelNode.data?.label || chatModelNode.label || chatModelNode.id,
+        } : null
+        
+        const memoryNode = memoryConnected 
+          ? nodes.find((node) => node.id === memoryEdge.source)
+          : null
+        const memoryNodeInfo = memoryNode ? {
+          id: memoryNode.id,
+          type: memoryNode.data?.type || memoryNode.type,
+          label: memoryNode.data?.label || memoryNode.label || memoryNode.id,
+        } : null
+        
+        const toolNode = toolConnected 
+          ? nodes.find((node) => node.id === toolEdge.source)
+          : null
+        const toolNodeInfo = toolNode ? {
+          id: toolNode.id,
+          type: toolNode.data?.type || toolNode.type,
+          label: toolNode.data?.label || toolNode.label || toolNode.id,
+        } : null
+        
+        // 更新配置，保留原有配置，但覆盖连接状态和节点信息
+        const updatedConfig = {
+          ...config,
+          chat_model_connected: chatModelConnected,
+          chat_model_node: chatModelNodeInfo,  // 存储连接的节点信息
+          memory_connected: memoryConnected,
+          memory_node: memoryNodeInfo,
+          tool_connected: toolConnected,
+          tool_node: toolNodeInfo,
+        }
+        
+        console.log('[NodeDetailPanel] AI Agent 连接检测:', {
+          nodeId: _nodeId,
+          chatModelConnected,
+          chatModelNodeInfo,
+          memoryConnected,
+          memoryNodeInfo,
+          toolConnected,
+          toolNodeInfo,
+        })
+        
+        form.setFieldsValue({
+          label: nodeData.label,
+          description: nodeData.description || '',
+          ...updatedConfig,
+        })
+        setCurrentConfig(updatedConfig)
+      } else {
+        // 其他节点类型，正常处理
+        form.setFieldsValue({
+          label: nodeData.label,
+          description: nodeData.description || '',
+          ...config,
+        })
+        setCurrentConfig(config)
+      }
+      
+      // 同步文件路径状态
       setFilePathValue(initialFilePath)
-      setCurrentConfig(config)
-      // 如果上游节点有执行结果，使用上游结果；否则重置
-      if (upstreamResult) {
-        console.log(`[NodeDetailPanel useEffect] 设置上游结果到 executionResult，节点ID: ${_nodeId}`)
+      
+      // 优先使用已保存的执行结果，如果没有则使用上游结果
+      if (_nodeId && nodeExecutionResults.has(_nodeId)) {
+        const savedResult = nodeExecutionResults.get(_nodeId)
+        if (savedResult) {
+          console.log(`[NodeDetailPanel useEffect] 使用已保存的执行结果，节点ID: ${_nodeId}`)
+          console.log(`[NodeDetailPanel useEffect] 已保存结果详情:`, {
+            hasData: !!savedResult.data,
+            hasSchema: !!savedResult.schema,
+            hasAnalysis: !!savedResult.analysis,
+            hasEditorConfig: !!savedResult.editor_config,
+            hasChatModelResponse: !!savedResult.chat_model_response,
+            hasAiAgentOutput: !!savedResult.ai_agent_output,
+            filePath: savedResult.file_path,
+            keys: Object.keys(savedResult),
+          })
+          setExecutionResult(savedResult)
+        }
+      } else if (upstreamResult) {
+        console.log(`[NodeDetailPanel useEffect] 使用上游结果，节点ID: ${_nodeId}`)
+        console.log(`[NodeDetailPanel useEffect] 上游结果详情:`, {
+          hasData: !!upstreamResult.data,
+          hasSchema: !!upstreamResult.schema,
+          hasAnalysis: !!upstreamResult.analysis,
+          hasEditorConfig: !!upstreamResult.editor_config,
+          filePath: upstreamResult.file_path,
+          keys: Object.keys(upstreamResult),
+        })
         setExecutionResult(upstreamResult)
       } else {
-        console.log(`[NodeDetailPanel useEffect] 没有上游结果，重置 executionResult，节点ID: ${_nodeId}`)
+        console.log(`[NodeDetailPanel useEffect] 没有已保存结果和上游结果，重置 executionResult，节点ID: ${_nodeId}`)
         setExecutionResult(null)
       }
       setExecutionError(null)
     }
-  }, [open, nodeData, form, upstreamResult, _nodeId])
+  }, [open, nodeData, form, upstreamResult, _nodeId, nodeExecutionResults, nodes, edges])
+
+  // 当 edges 变化时，对于 AI Agent 节点，自动更新连接状态
+  useEffect(() => {
+    if (open && nodeData?.type === 'ai_agent' && _nodeId) {
+      // 检测 Chat Model 连接
+      const chatModelEdge = edges.find(
+        (edge) => edge.target === _nodeId && edge.targetHandle === 'chat_model'
+      )
+      const chatModelConnected = !!chatModelEdge
+      
+      // 检测 Memory 连接
+      const memoryEdge = edges.find(
+        (edge) => edge.target === _nodeId && edge.targetHandle === 'memory'
+      )
+      const memoryConnected = !!memoryEdge
+      
+      // 检测 Tool 连接
+      const toolEdge = edges.find(
+        (edge) => edge.target === _nodeId && edge.targetHandle === 'tool'
+      )
+      const toolConnected = !!toolEdge
+      
+      // 获取连接的节点信息
+      const chatModelNode = chatModelConnected 
+        ? nodes.find((node) => node.id === chatModelEdge.source)
+        : null
+      const chatModelNodeInfo = chatModelNode ? {
+        id: chatModelNode.id,
+        type: chatModelNode.data?.type || chatModelNode.type,
+        label: chatModelNode.data?.label || chatModelNode.label || chatModelNode.id,
+      } : null
+      
+      const memoryNode = memoryConnected 
+        ? nodes.find((node) => node.id === memoryEdge.source)
+        : null
+      const memoryNodeInfo = memoryNode ? {
+        id: memoryNode.id,
+        type: memoryNode.data?.type || memoryNode.type,
+        label: memoryNode.data?.label || memoryNode.label || memoryNode.id,
+      } : null
+      
+      const toolNode = toolConnected 
+        ? nodes.find((node) => node.id === toolEdge.source)
+        : null
+      const toolNodeInfo = toolNode ? {
+        id: toolNode.id,
+        type: toolNode.data?.type || toolNode.type,
+        label: toolNode.data?.label || toolNode.label || toolNode.id,
+      } : null
+      
+      // 更新表单字段
+      form.setFieldsValue({
+        config: {
+          ...form.getFieldValue('config'),
+          chat_model_connected: chatModelConnected,
+          chat_model_node: chatModelNodeInfo,
+          memory_connected: memoryConnected,
+          memory_node: memoryNodeInfo,
+          tool_connected: toolConnected,
+          tool_node: toolNodeInfo,
+        }
+      })
+      
+      // 更新当前配置状态
+      const currentConfig = form.getFieldValue('config') || {}
+      setCurrentConfig({
+        ...currentConfig,
+        chat_model_connected: chatModelConnected,
+        chat_model_node: chatModelNodeInfo,
+        memory_connected: memoryConnected,
+        memory_node: memoryNodeInfo,
+        tool_connected: toolConnected,
+        tool_node: toolNodeInfo,
+      })
+      
+      console.log('[NodeDetailPanel] AI Agent 连接状态已更新:', {
+        nodeId: _nodeId,
+        chatModelConnected,
+        memoryConnected,
+        toolConnected,
+      })
+    }
+  }, [open, nodeData, _nodeId, edges, form])
 
   // 更新当前配置的函数
   const updateCurrentConfig = () => {
@@ -404,6 +680,24 @@ const NodeDetailPanel = ({
     // 如果当前节点已经执行过，使用当前结果；否则使用上游结果
     const initialResult = executionResult || upstreamResult || null
     
+    // 获取连接的节点信息（用于AI Agent等节点）
+    const getConnectedNode = (nodeId: string, targetHandle: string) => {
+      // 查找连接到指定端口的边
+      const connectedEdge = edges.find(
+        (edge) => edge.target === nodeId && edge.targetHandle === targetHandle
+      )
+      if (!connectedEdge) return null
+
+      // 查找源节点
+      const sourceNode = nodes.find((node) => node.id === connectedEdge.source)
+      if (!sourceNode) return null
+
+      // 获取源节点的执行结果
+      const sourceResult = nodeExecutionResults.get(connectedEdge.source) || null
+
+      return { node: sourceNode, result: sourceResult }
+    }
+
     // 获取节点执行器
     const executor = getNodeExecutor(nodeData.type, {
       form,
@@ -422,6 +716,11 @@ const NodeDetailPanel = ({
       },
       setExecuting,
       setExecutionError,
+      getConnectedNode: _nodeId ? (nodeId: string, targetHandle: string) => {
+        // 如果传入的nodeId为空，使用当前节点ID
+        const actualNodeId = nodeId || _nodeId
+        return getConnectedNode(actualNodeId, targetHandle)
+      } : undefined,
     })
     
     if (!executor) {
@@ -447,7 +746,21 @@ const NodeDetailPanel = ({
           console.warn(`[handleNodeExecute] 执行成功但 onExecutionResult 回调未定义，节点ID: ${_nodeId}`)
         }
       } else if (!result.success) {
-        setExecutionError(result.error || '执行失败')
+        const errorMessage = result.error || '执行失败'
+        setExecutionError(errorMessage)
+        
+        // 即使执行失败，也存储错误信息到执行结果中，以便下游节点能够识别上游节点失败
+        const errorResult: ParsedFile = {
+          hasData: false,
+          error: errorMessage,
+          executionError: errorMessage,
+        } as any
+        
+        setExecutionResult(errorResult)
+        if (onExecutionResult) {
+          console.log(`[handleNodeExecute] 执行失败，存储错误信息到执行结果，节点ID: ${_nodeId}`)
+          onExecutionResult(errorResult)
+        }
       }
     } catch (error: any) {
       console.error('[handleNodeExecute] 节点执行错误:', error)
@@ -676,7 +989,8 @@ const NodeDetailPanel = ({
       case 'chatgpt':
       case 'gemini':
       case 'deepseek':
-      case 'memory': {
+      case 'memory':
+      case 'ai_agent': {
         const ConfigComponent = getNodeConfigComponent(nodeData.type)
         if (ConfigComponent) {
           return (
@@ -686,6 +1000,9 @@ const NodeDetailPanel = ({
               setFilePathValue={setFilePathValue}
               onFileSelect={handleFileSelect}
               onConfigChange={updateCurrentConfig}
+              nodes={nodes}
+              edges={edges}
+              nodeId={_nodeId || undefined}
             />
           )
         }
@@ -698,6 +1015,7 @@ const NodeDetailPanel = ({
     }
   }
 
+  // 增强的Schema视图，显示更详细的结构信息
   const renderSchemaView = (schema: any) => {
     if (!schema) return <Text type="secondary">暂无数据</Text>
     
@@ -834,23 +1152,61 @@ const NodeDetailPanel = ({
   }
 
   const renderTableView = (data: any) => {
-    if (!data || !data.data) return <Text type="secondary">暂无数据</Text>
+    if (!data) return <Text type="secondary">暂无数据</Text>
     
-    const flatData = flattenObject(data.data)
-    const columns = Object.keys(flatData).map(key => ({
-      title: key,
-      dataIndex: key,
-      key,
-    }))
+    // 处理 table 格式的数据（数组）
+    if (Array.isArray(data.data)) {
+      // 如果是数组，直接作为表格数据源
+      if (data.data.length === 0) {
+        return <Text type="secondary">暂无数据</Text>
+      }
+      
+      // 从第一条数据获取列定义
+      const firstRow = data.data[0]
+      const columns = Object.keys(firstRow).map(key => ({
+        title: key,
+        dataIndex: key,
+        key,
+        ellipsis: true,
+        render: (text: any) => {
+          if (typeof text === 'object' && text !== null) {
+            return JSON.stringify(text)
+          }
+          return String(text ?? '')
+        },
+      }))
 
-    return (
-      <Table
-        dataSource={[flatData]}
-        columns={columns}
-        pagination={false}
-        size="small"
-      />
-    )
+      return (
+        <Table
+          dataSource={data.data}
+          columns={columns}
+          pagination={{ pageSize: 10 }}
+          size="small"
+          scroll={{ y: 400, x: 'max-content' }}
+        />
+      )
+    }
+    
+    // 处理对象格式的数据（展平为表格）
+    if (data.data && typeof data.data === 'object') {
+      const flatData = flattenObject(data.data)
+      const columns = Object.keys(flatData).map(key => ({
+        title: key,
+        dataIndex: key,
+        key,
+      }))
+
+      return (
+        <Table
+          dataSource={[flatData]}
+          columns={columns}
+          pagination={false}
+          size="small"
+        />
+      )
+    }
+    
+    return <Text type="secondary">暂无数据</Text>
   }
 
   const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
@@ -877,11 +1233,203 @@ const NodeDetailPanel = ({
         padding: '12px', 
         borderRadius: '4px', 
         overflow: 'auto',
-        maxHeight: '400px',
+        maxHeight: '600px',
         fontSize: '12px',
-        fontFamily: 'monospace'
+        fontFamily: 'monospace',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        width: '100%'
       }}>
         {JSON.stringify(data, null, 2)}
+      </pre>
+    )
+  }
+
+  // 将对象转换为XML格式字符串（简化版）
+  const objectToXml = (obj: any, rootName: string = 'root', indent: string = ''): string => {
+    if (obj === null || obj === undefined) {
+      return ''
+    }
+
+    // 如果是字符串，直接返回
+    if (typeof obj === 'string') {
+      // 检查是否是XML字符串
+      if (obj.trim().startsWith('<')) {
+        return obj
+      }
+      // 转义XML特殊字符
+      return obj
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;')
+    }
+
+    // 如果是数字或布尔值
+    if (typeof obj !== 'object') {
+      return String(obj)
+    }
+
+    // 如果是数组
+    if (Array.isArray(obj)) {
+      return obj.map((item) => {
+        const itemName = rootName.endsWith('s') ? rootName.slice(0, -1) : `${rootName}_item`
+        return objectToXml(item, itemName, indent + '  ')
+      }).join('\n')
+    }
+
+    // 如果是对象
+    let xml = ''
+    const keys = Object.keys(obj)
+    
+    // 获取当前对象的属性
+    const attrs = obj['@attributes'] || {}
+    const textContent = obj['#text']
+    const attrStr = Object.keys(attrs).map(attr => `${attr}="${String(attrs[attr]).replace(/"/g, '&quot;')}"`).join(' ')
+    const attrPrefix = attrStr ? ` ${attrStr}` : ''
+    
+    for (const key of keys) {
+      const value = obj[key]
+      
+      // 跳过特殊键
+      if (key === '@attributes' || key === '#text') {
+        continue
+      }
+
+      if (value === null || value === undefined) {
+        xml += `${indent}<${key}${attrPrefix} />\n`
+      } else if (typeof value === 'object') {
+        if (Array.isArray(value)) {
+          value.forEach((item: any) => {
+            // 为数组项获取属性
+            const itemAttrs = item['@attributes'] || {}
+            const itemAttrStr = Object.keys(itemAttrs).map(attr => `${attr}="${String(itemAttrs[attr]).replace(/"/g, '&quot;')}"`).join(' ')
+            const itemAttrPrefix = itemAttrStr ? ` ${itemAttrStr}` : ''
+            const itemText = item['#text'] || ''
+            
+            xml += `${indent}<${key}${itemAttrPrefix}>\n`
+            const itemContent = objectToXml(item, key, indent + '  ')
+            if (itemText && !itemContent.trim()) {
+              xml += `${indent}  ${itemText}\n`
+            } else {
+              xml += itemContent
+            }
+            xml += `${indent}</${key}>\n`
+          })
+        } else {
+          // 为子对象获取属性
+          const childAttrs = value['@attributes'] || {}
+          const childAttrStr = Object.keys(childAttrs).map(attr => `${attr}="${String(childAttrs[attr]).replace(/"/g, '&quot;')}"`).join(' ')
+          const childAttrPrefix = childAttrStr ? ` ${childAttrStr}` : ''
+          const childText = value['#text'] || ''
+          
+          xml += `${indent}<${key}${childAttrPrefix}>\n`
+          const childContent = objectToXml(value, key, indent + '  ')
+          if (childText && !childContent.trim()) {
+            xml += `${indent}  ${childText}\n`
+          } else {
+            xml += childContent
+          }
+          xml += `${indent}</${key}>\n`
+        }
+      } else {
+        xml += `${indent}<${key}${attrPrefix}>${String(value)}</${key}>\n`
+      }
+    }
+    
+    // 如果有文本内容但没有子元素，添加文本
+    if (textContent && !xml.trim()) {
+      xml = `${indent}${textContent}\n`
+    }
+
+    return xml
+  }
+
+  const renderXmlView = (data: any, isInput: boolean = false) => {
+    if (!data) return <Text type="secondary">暂无数据</Text>
+    
+    // 确定使用的数据源：INPUT区域使用inputData/upstreamResult，OUTPUT区域使用executionResult
+    const filePath = isInput ? (data.file_path || upstreamResult?.file_path) : executionResult?.file_path
+    const originalFormat = isInput ? (data.original_format || upstreamResult?.original_format) : executionResult?.original_format
+    const outputFormat = isInput ? (data.output_format || upstreamResult?.output_format) : executionResult?.output_format
+    
+    // 关键逻辑：如果input是XML，output也是XML，且没有开启转换，直接显示原始文件内容
+    const isXMLInput = originalFormat === 'xml' || filePath?.endsWith('.xml')
+    const isXMLOutput = outputFormat === 'xml'
+    const shouldShowOriginal = isXMLInput && (isXMLOutput || !outputFormat)
+    
+    // 如果应该显示原始内容，直接读取文件
+    if (shouldShowOriginal && filePath) {
+      return (
+        <div>
+          <div style={{ marginBottom: '12px', padding: '8px', background: '#f0f9ff', borderRadius: '4px', border: '1px solid #91d5ff' }}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              <InfoCircleOutlined /> XML格式：显示原始文件内容（未转换）
+            </Text>
+          </div>
+          <FileContentPreview filePath={filePath} />
+        </div>
+      )
+    }
+    
+    // 如果明确要求转换，或者不是XML输入，显示转换后的内容
+    if (filePath && originalFormat === 'xml' && !shouldShowOriginal) {
+      return (
+        <div>
+          <div style={{ marginBottom: '12px', padding: '8px', background: '#fff7e6', borderRadius: '4px', border: '1px solid #ffd591' }}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              <InfoCircleOutlined /> 已转换为XML格式（从解析后的数据结构生成）
+            </Text>
+          </div>
+          <Text type="secondary" style={{ marginBottom: '12px', display: 'block' }}>
+            原始XML文件内容：
+          </Text>
+          <FileContentPreview filePath={filePath} />
+          <Divider />
+          <Text type="secondary" style={{ marginBottom: '12px', display: 'block' }}>
+            转换后的XML内容：
+          </Text>
+          <pre style={{ 
+            background: '#f5f5f5', 
+            padding: '12px', 
+            borderRadius: '4px', 
+            overflow: 'auto',
+            maxHeight: '600px',
+            fontSize: '12px',
+            fontFamily: 'monospace',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            width: '100%'
+          }}>
+            {data.data ? objectToXml(data.data, 'root') : '暂无数据'}
+          </pre>
+        </div>
+      )
+    }
+    
+    // 如果没有文件路径，直接转换数据为XML
+    let xmlContent = ''
+    if (data.data) {
+      xmlContent = objectToXml(data.data, 'root')
+    } else {
+      xmlContent = objectToXml(data, 'root')
+    }
+    
+    return (
+      <pre style={{ 
+        background: '#f5f5f5', 
+        padding: '12px', 
+        borderRadius: '4px', 
+        overflow: 'auto',
+        maxHeight: '600px',
+        fontSize: '12px',
+        fontFamily: 'monospace',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        width: '100%'
+      }}>
+        {xmlContent || '暂无数据'}
       </pre>
     )
   }
@@ -924,8 +1472,8 @@ const NodeDetailPanel = ({
       }
       open={open}
       onClose={onClose}
-      width="90%"
-      style={{ maxWidth: '1400px' }}
+      width="95%"
+      style={{ maxWidth: '1800px' }}
       placement="right"
       mask={false}
       className="node-detail-panel"
@@ -967,18 +1515,37 @@ const NodeDetailPanel = ({
                           <Descriptions.Item label="文件路径">
                             <Text code>{executionResult.file_path}</Text>
                           </Descriptions.Item>
-                          <Descriptions.Item label="文件类型">
-                            <Text>{executionResult.file_path.split('.').pop()?.toUpperCase() || '未知'}</Text>
+                                  <Descriptions.Item label="原始格式">
+                            <Text>
+                              {executionResult.original_format?.toUpperCase() || 
+                               (executionResult.file_path ? executionResult.file_path.split('.').pop()?.toUpperCase() : '未知') || 
+                               '未知'}
+                            </Text>
                           </Descriptions.Item>
+                          {executionResult.output_format && (
+                            <Descriptions.Item label="输出格式">
+                              <Text strong style={{ color: '#1890ff' }}>
+                                {executionResult.output_format.toUpperCase()}
+                              </Text>
+                            </Descriptions.Item>
+                          )}
                           <Descriptions.Item label="数据项数">
-                            <Text>{executionResult.data ? (Array.isArray(executionResult.data) ? executionResult.data.length : Object.keys(executionResult.data).length) : 0}</Text>
+                            <Text>
+                              {executionResult.data 
+                                ? (Array.isArray(executionResult.data) 
+                                    ? executionResult.data.length 
+                                    : Object.keys(executionResult.data).length)
+                                : 0}
+                            </Text>
                           </Descriptions.Item>
                         </Descriptions>
                       </div>
-                      <div style={{ marginTop: '16px' }}>
-                        <Title level={5} style={{ marginBottom: '8px', fontSize: '14px' }}>源文件内容</Title>
-                        <FileContentPreview filePath={executionResult.file_path} />
-                      </div>
+                      {executionResult.file_path && (
+                        <div style={{ marginTop: '16px' }}>
+                          <Title level={5} style={{ marginBottom: '8px', fontSize: '14px' }}>源文件内容</Title>
+                          <FileContentPreview filePath={executionResult.file_path} />
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -987,7 +1554,7 @@ const NodeDetailPanel = ({
           ) : inputData ? (
             <Tabs
               activeKey={activeInputTab}
-              onChange={(key) => setActiveInputTab(key as 'schema' | 'table' | 'json')}
+              onChange={(key) => setActiveInputTab(key as 'schema' | 'table' | 'json' | 'xml')}
               items={[
                 {
                   key: 'schema',
@@ -1018,6 +1585,16 @@ const NodeDetailPanel = ({
                     </Space>
                   ),
                   children: renderJsonView(inputData),
+                },
+                {
+                  key: 'xml',
+                  label: (
+                    <Space>
+                      <FileOutlined />
+                      XML
+                    </Space>
+                  ),
+                  children: renderXmlView(inputData, true),
                 },
               ]}
             />
@@ -1097,15 +1674,147 @@ const NodeDetailPanel = ({
             </div>
           ) : executionError ? (
             <div style={{ padding: '24px' }}>
-              <div style={{ color: '#ff4d4f', marginBottom: '12px' }}>
-                <Text strong>执行失败</Text>
-              </div>
-              <Text type="danger">{executionError}</Text>
+              {(() => {
+                // 尝试解析错误信息（可能是 JSON 格式）
+                let errorInfo: any = null
+                try {
+                  errorInfo = JSON.parse(executionError)
+                } catch {
+                  // 如果不是 JSON，使用原始错误信息
+                  errorInfo = { error_detail: executionError }
+                }
+                
+                const errorType = errorInfo.error_type || 'UNKNOWN_ERROR'
+                const errorMessage = errorInfo.error_message || '执行失败'
+                const errorDetail = errorInfo.error_detail || executionError
+                const statusCode = errorInfo.status_code
+                
+                // 根据错误类型显示不同的图标和颜色
+                const getErrorIcon = () => {
+                  switch (errorType) {
+                    case 'TIMEOUT':
+                      return '⏱️'
+                    case 'TOKEN_LIMIT':
+                      return '📊'
+                    case 'RATE_LIMIT':
+                      return '🚦'
+                    case 'AUTH_ERROR':
+                      return '🔐'
+                    case 'QUOTA_EXCEEDED':
+                      return '💰'
+                    case 'NETWORK_ERROR':
+                      return '🌐'
+                    default:
+                      return '❌'
+                  }
+                }
+                
+                const getErrorColor = () => {
+                  switch (errorType) {
+                    case 'TIMEOUT':
+                      return '#faad14'
+                    case 'TOKEN_LIMIT':
+                      return '#ff4d4f'
+                    case 'RATE_LIMIT':
+                      return '#faad14'
+                    case 'AUTH_ERROR':
+                      return '#ff4d4f'
+                    case 'QUOTA_EXCEEDED':
+                      return '#ff4d4f'
+                    case 'NETWORK_ERROR':
+                      return '#faad14'
+                    default:
+                      return '#ff4d4f'
+                  }
+                }
+                
+                return (
+                  <>
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ 
+                        color: getErrorColor(), 
+                        marginBottom: '8px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>{getErrorIcon()}</span>
+                        <span>{errorMessage}</span>
+                        {statusCode && (
+                          <span style={{ 
+                            fontSize: '12px', 
+                            fontWeight: 'normal',
+                            color: '#8c8c8c',
+                            marginLeft: '8px'
+                          }}>
+                            (HTTP {statusCode})
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ 
+                        background: '#fff2e8',
+                        padding: '12px',
+                        borderRadius: '4px',
+                        border: `1px solid ${getErrorColor()}`,
+                        marginTop: '8px'
+                      }}>
+                        <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+                          错误详情：
+                        </Text>
+                        <Text style={{ fontSize: '13px', wordBreak: 'break-word' }}>
+                          {errorDetail}
+                        </Text>
+                      </div>
+                      {errorType === 'TOKEN_LIMIT' && (
+                        <div style={{ 
+                          marginTop: '12px',
+                          padding: '12px',
+                          background: '#f6ffed',
+                          borderRadius: '4px',
+                          border: '1px solid #b7eb8f'
+                        }}>
+                          <Text style={{ fontSize: '12px', color: '#52c41a' }}>
+                            💡 建议：减少输入内容长度，或使用更小的模型（如 gpt-5-nano）
+                          </Text>
+                        </div>
+                      )}
+                      {errorType === 'RATE_LIMIT' && (
+                        <div style={{ 
+                          marginTop: '12px',
+                          padding: '12px',
+                          background: '#fff7e6',
+                          borderRadius: '4px',
+                          border: '1px solid #ffd591'
+                        }}>
+                          <Text style={{ fontSize: '12px', color: '#fa8c16' }}>
+                            💡 建议：请稍后重试，或减少并发请求数量
+                          </Text>
+                        </div>
+                      )}
+                      {errorType === 'TIMEOUT' && (
+                        <div style={{ 
+                          marginTop: '12px',
+                          padding: '12px',
+                          background: '#fff7e6',
+                          borderRadius: '4px',
+                          border: '1px solid #ffd591'
+                        }}>
+                          <Text style={{ fontSize: '12px', color: '#fa8c16' }}>
+                            💡 建议：检查网络连接，或在配置中增加超时时间
+                          </Text>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
             </div>
-          ) : outputData && executionResult ? (
+          ) : (outputData && Object.keys(outputData).length > 0) || (executionResult && (executionResult.chat_model_response || executionResult.ai_agent_output)) ? (
             <Tabs
               activeKey={activeOutputTab}
-              onChange={(key) => setActiveOutputTab(key as 'schema' | 'table' | 'json' | 'workflow' | 'validation')}
+              onChange={(key) => setActiveOutputTab(key as 'schema' | 'table' | 'json' | 'xml' | 'workflow' | 'validation')}
               items={[
                 // 验证视图（优先显示，针对特定节点类型）
                 ...((nodeData?.type === 'parse_file' || 
@@ -1171,24 +1880,82 @@ const NodeDetailPanel = ({
                       )}
                       <div>
                         <Text strong style={{ marginBottom: '8px', display: 'block' }}>
-                          {executionResult.generated_workflow ? '生成的工作流定义：' : 
-                           executionResult.analysis ? '结构分析结果：' :
-                           executionResult.editor_config ? '编辑器配置：' :
-                           executionResult.smart_edit_result ? '智能编辑结果：' :
+                          {executionResult?.generated_workflow ? '生成的工作流定义：' : 
+                           executionResult?.analysis ? '结构分析结果：' :
+                           executionResult?.editor_config ? '编辑器配置：' :
+                           executionResult?.smart_edit_result ? '智能编辑结果：' :
+                           (executionResult?.chat_model_response || executionResult?.ai_agent_output) ? 'AI Agent 回答（来自 Chat Model）：' :
                            '解析后的数据：'}
                         </Text>
-                        {renderJsonView(
-                          executionResult.generated_workflow || 
-                          executionResult.analysis || 
-                          executionResult.editor_config ||
-                          executionResult.smart_edit_result ||
-                          { data: outputData.data, schema: outputData.schema }
+                        {nodeData?.type === 'ai_agent' && (executionResult?.chat_model_response || executionResult?.ai_agent_output) ? (
+                          <div>
+                            {/* 显示 Chat Model 的原始回答 */}
+                            <div style={{ marginBottom: '16px' }}>
+                              <Text strong style={{ marginBottom: '8px', display: 'block' }}>
+                                Chat Model 回答：
+                              </Text>
+                              <pre style={{ 
+                                background: '#f5f5f5', 
+                                padding: '12px', 
+                                borderRadius: '4px', 
+                                overflow: 'auto',
+                                maxHeight: '400px',
+                                fontSize: '12px',
+                                fontFamily: 'monospace',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                width: '100%'
+                              }}>
+                                {executionResult.ai_agent_output || executionResult.chat_model_response?.content || '无回答'}
+                              </pre>
+                            </div>
+                            <Divider />
+                            {/* 显示处理后的数据 */}
+                            {executionResult.data && (
+                              <div>
+                                <Text strong style={{ marginBottom: '8px', display: 'block' }}>
+                                  处理后的数据（{executionResult.output_format || 'json'}格式）：
+                                </Text>
+                                {renderJsonView(executionResult.data)}
+                              </div>
+                            )}
+                            <Divider />
+                            {/* 显示 Chat Model 响应详情 */}
+                            <div>
+                              <Text strong style={{ marginBottom: '8px', display: 'block' }}>
+                                Chat Model 响应详情：
+                              </Text>
+                              {renderJsonView({
+                                model: executionResult.chat_model_response?.model,
+                                model_type: executionResult.chat_model_response?.model_type,
+                                usage: executionResult.chat_model_response?.usage,
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          renderJsonView(
+                            executionResult?.generated_workflow || 
+                            executionResult?.analysis || 
+                            executionResult?.editor_config ||
+                            executionResult?.smart_edit_result ||
+                            { data: outputData.data, schema: outputData.schema }
+                          )
                         )}
                       </div>
                     </div>
                   ),
                 },
-                ...(executionResult.generated_workflow ? [{
+                {
+                  key: 'xml',
+                  label: (
+                    <Space>
+                      <FileOutlined />
+                      XML
+                    </Space>
+                  ),
+                  children: renderXmlView(outputData),
+                },
+                ...(executionResult?.generated_workflow ? [{
                   key: 'workflow',
                   label: (
                     <Space>
