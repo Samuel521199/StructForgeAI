@@ -428,16 +428,21 @@ const NodeDetailPanel = ({
       const config = nodeData.config || {}
       const initialFilePath = config.file_path || ''
       
-      // 对于 AI Agent 节点，自动检测连接的节点
-      if (nodeData.type === 'ai_agent' && _nodeId) {
-        // 检测 Chat Model 连接
-        const chatModelEdge = edges.find(
-          (edge) => edge.target === _nodeId && edge.targetHandle === 'chat_model'
-        )
-        const chatModelConnected = !!chatModelEdge
-        const chatModelNode = chatModelConnected 
-          ? nodes.find((node) => node.id === chatModelEdge.source)
-          : null
+      // 对于 AI Agent 和 GPT Agent 节点，自动检测连接的节点
+      if ((nodeData.type === 'ai_agent' || nodeData.type === 'gpt_agent') && _nodeId) {
+        // 检测 Chat Model 连接（仅 AI Agent 需要）
+        let chatModelEdge: any = null
+        let chatModelConnected = false
+        let chatModelNode: any = null
+        if (nodeData.type === 'ai_agent') {
+          chatModelEdge = edges.find(
+            (edge) => edge.target === _nodeId && edge.targetHandle === 'chat_model'
+          )
+          chatModelConnected = !!chatModelEdge
+          chatModelNode = chatModelConnected 
+            ? nodes.find((node) => node.id === chatModelEdge.source)
+            : null
+        }
         
         // 检测 Memory 连接
         const memoryEdge = edges.find(
@@ -477,38 +482,46 @@ const NodeDetailPanel = ({
         } : null
         
         // 更新配置，保留原有配置，但覆盖连接状态和节点信息
-        const updatedConfig = {
+        const updatedConfig: any = {
           ...config,
-          chat_model_connected: chatModelConnected,
-          chat_model_node: chatModelNodeInfo,  // 存储连接的节点信息
           memory_connected: memoryConnected,
           memory_node: memoryNodeInfo,
           tool_connected: toolConnected,
           tool_node: toolNodeInfo,
         }
         
-        console.log('[NodeDetailPanel] AI Agent 连接检测:', {
+        // AI Agent 需要 Chat Model 连接
+        if (nodeData.type === 'ai_agent') {
+          updatedConfig.chat_model_connected = chatModelConnected
+          updatedConfig.chat_model_node = chatModelNodeInfo
+        }
+        
+        console.log(`[NodeDetailPanel] ${nodeData.type === 'ai_agent' ? 'AI Agent' : 'GPT Agent'} 连接检测:`, {
           nodeId: _nodeId,
-          chatModelConnected,
-          chatModelNodeInfo,
+          chatModelConnected: nodeData.type === 'ai_agent' ? chatModelConnected : 'N/A',
+          chatModelNodeInfo: nodeData.type === 'ai_agent' ? chatModelNodeInfo : 'N/A',
           memoryConnected,
           memoryNodeInfo,
           toolConnected,
           toolNodeInfo,
         })
         
+        // 确保 config 字段正确设置（将配置放在 config 对象中）
         form.setFieldsValue({
-          label: nodeData.label,
+          label: nodeData.label || nodeData.type || 'GPT Agent',
           description: nodeData.description || '',
-          ...updatedConfig,
+          config: updatedConfig,  // 将配置放在 config 字段中
         })
         setCurrentConfig(updatedConfig)
       } else {
         // 其他节点类型，正常处理
+        // 对于使用配置组件的节点（如 gpt_agent），需要将配置放在 config 字段中
+        const isConfigComponentNode = ['gpt_agent', 'ai_agent', 'chatgpt', 'gemini', 'deepseek'].includes(nodeData.type)
+        
         form.setFieldsValue({
-          label: nodeData.label,
+          label: nodeData.label || nodeData.type || '节点',
           description: nodeData.description || '',
-          ...config,
+          ...(isConfigComponentNode ? { config } : config),  // 配置组件节点需要嵌套在 config 中
         })
         setCurrentConfig(config)
       }
@@ -545,21 +558,57 @@ const NodeDetailPanel = ({
         })
         setExecutionResult(upstreamResult)
       } else {
-        console.log(`[NodeDetailPanel useEffect] 没有已保存结果和上游结果，重置 executionResult，节点ID: ${_nodeId}`)
-        setExecutionResult(null)
+        // 如果是 parse_file 节点，尝试从后端获取缓存结果
+        if (nodeData.type === 'parse_file' && initialFilePath) {
+          console.log(`[NodeDetailPanel useEffect] parse_file 节点，尝试从后端获取缓存，节点ID: ${_nodeId}, 文件路径: ${initialFilePath}`)
+          // 异步获取缓存，不阻塞UI
+          const loadCache = async () => {
+            try {
+              const { fileApi } = await import('@/services/api')
+              const cacheResult = await fileApi.getParseCache(initialFilePath, {
+                convert_format: config.convert_format || false,
+                output_format: config.output_format,
+                skip_schema: config.skip_schema || false,
+              })
+              
+              if (cacheResult.cached && cacheResult.result) {
+                console.log(`[NodeDetailPanel useEffect] 从后端获取到缓存结果，节点ID: ${_nodeId}`)
+                setExecutionResult(cacheResult.result)
+                // 同时更新全局执行结果，以便其他节点可以使用
+                if (onExecutionResult && _nodeId) {
+                  onExecutionResult(cacheResult.result)
+                }
+              } else {
+                console.log(`[NodeDetailPanel useEffect] 后端没有缓存，节点ID: ${_nodeId}`)
+                setExecutionResult(null)
+              }
+            } catch (error) {
+              console.warn(`[NodeDetailPanel useEffect] 获取缓存失败: ${error}`)
+              setExecutionResult(null)
+            }
+          }
+          loadCache()
+        } else {
+          console.log(`[NodeDetailPanel useEffect] 没有已保存结果和上游结果，重置 executionResult，节点ID: ${_nodeId}`)
+          setExecutionResult(null)
+        }
       }
       setExecutionError(null)
     }
   }, [open, nodeData, form, upstreamResult, _nodeId, nodeExecutionResults, nodes, edges])
 
-  // 当 edges 变化时，对于 AI Agent 节点，自动更新连接状态
+  // 当 edges 变化时，对于 AI Agent 和 GPT Agent 节点，自动更新连接状态
   useEffect(() => {
-    if (open && nodeData?.type === 'ai_agent' && _nodeId) {
-      // 检测 Chat Model 连接
-      const chatModelEdge = edges.find(
-        (edge) => edge.target === _nodeId && edge.targetHandle === 'chat_model'
-      )
-      const chatModelConnected = !!chatModelEdge
+    if (open && (nodeData?.type === 'ai_agent' || nodeData?.type === 'gpt_agent') && _nodeId) {
+      // 检测 Chat Model 连接（仅 AI Agent 需要）
+      let chatModelEdge: any = null
+      let chatModelConnected = false
+      if (nodeData.type === 'ai_agent') {
+        chatModelEdge = edges.find(
+          (edge) => edge.target === _nodeId && edge.targetHandle === 'chat_model'
+        )
+        chatModelConnected = !!chatModelEdge
+      }
       
       // 检测 Memory 连接
       const memoryEdge = edges.find(
@@ -574,7 +623,7 @@ const NodeDetailPanel = ({
       const toolConnected = !!toolEdge
       
       // 获取连接的节点信息
-      const chatModelNode = chatModelConnected 
+      const chatModelNode = chatModelConnected && chatModelEdge
         ? nodes.find((node) => node.id === chatModelEdge.source)
         : null
       const chatModelNodeInfo = chatModelNode ? {
@@ -602,33 +651,45 @@ const NodeDetailPanel = ({
       } : null
       
       // 更新表单字段
-      form.setFieldsValue({
-        config: {
-          ...form.getFieldValue('config'),
-          chat_model_connected: chatModelConnected,
-          chat_model_node: chatModelNodeInfo,
-          memory_connected: memoryConnected,
-          memory_node: memoryNodeInfo,
-          tool_connected: toolConnected,
-          tool_node: toolNodeInfo,
-        }
-      })
-      
-      // 更新当前配置状态
-      const currentConfig = form.getFieldValue('config') || {}
-      setCurrentConfig({
-        ...currentConfig,
-        chat_model_connected: chatModelConnected,
-        chat_model_node: chatModelNodeInfo,
+      const configUpdate: any = {
+        ...form.getFieldValue('config'),
         memory_connected: memoryConnected,
         memory_node: memoryNodeInfo,
         tool_connected: toolConnected,
         tool_node: toolNodeInfo,
+      }
+      
+      // AI Agent 需要 Chat Model 连接
+      if (nodeData.type === 'ai_agent') {
+        configUpdate.chat_model_connected = chatModelConnected
+        configUpdate.chat_model_node = chatModelNodeInfo
+      }
+      
+      form.setFieldsValue({
+        config: configUpdate,
       })
       
-      console.log('[NodeDetailPanel] AI Agent 连接状态已更新:', {
+      // 更新当前配置状态
+      const currentConfig = form.getFieldValue('config') || {}
+      const stateUpdate: any = {
+        ...currentConfig,
+        memory_connected: memoryConnected,
+        memory_node: memoryNodeInfo,
+        tool_connected: toolConnected,
+        tool_node: toolNodeInfo,
+      }
+      
+      // AI Agent 需要 Chat Model 连接
+      if (nodeData.type === 'ai_agent') {
+        stateUpdate.chat_model_connected = chatModelConnected
+        stateUpdate.chat_model_node = chatModelNodeInfo
+      }
+      
+      setCurrentConfig(stateUpdate)
+      
+      console.log(`[NodeDetailPanel] ${nodeData.type === 'ai_agent' ? 'AI Agent' : 'GPT Agent'} 连接状态已更新:`, {
         nodeId: _nodeId,
-        chatModelConnected,
+        chatModelConnected: nodeData.type === 'ai_agent' ? chatModelConnected : 'N/A',
         memoryConnected,
         toolConnected,
       })
@@ -656,15 +717,56 @@ const NodeDetailPanel = ({
   const handleSave = async () => {
     try {
       const values = await form.validateFields()
-      const { label, description, ...restConfig } = values
+      const { label, description, config, ...restConfig } = values
+      
+      // 确保 label 有值，如果没有则使用节点类型作为默认值
+      const finalLabel = label || nodeData?.type || '节点'
+      
+      // 对于使用配置组件的节点（如 gpt_agent），config 字段已经嵌套在 values.config 中
+      // 对于其他节点，配置字段直接展开在 restConfig 中
+      const isConfigComponentNode = nodeData && ['gpt_agent', 'ai_agent', 'chatgpt', 'gemini', 'deepseek'].includes(nodeData.type)
+      const finalConfig = isConfigComponentNode ? (config || {}) : restConfig
+      
       onSave({
-        label,
-        description,
-        config: restConfig,
+        label: finalLabel,
+        description: description || '',
+        config: finalConfig,
       })
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error('表单验证失败:', error)
+      // 显示验证错误信息
+      if (error.errorFields && error.errorFields.length > 0) {
+        const firstError = error.errorFields[0]
+        const fieldName = Array.isArray(firstError.name) 
+          ? firstError.name.join('.') 
+          : firstError.name || '字段'
+        const errorMessage = firstError.errors?.[0] || '验证失败'
+        
+        // 将字段路径转换为友好的中文名称
+        let friendlyName = fieldName
+        if (fieldName.includes('api_key')) {
+          friendlyName = 'API Key'
+        } else if (fieldName.includes('api_url')) {
+          friendlyName = 'API 地址'
+        } else if (fieldName.includes('label')) {
+          friendlyName = '节点名称'
+        } else if (fieldName.includes('config')) {
+          // 提取配置字段名
+          const configField = fieldName.replace('config.', '')
+          friendlyName = configField
+        }
+        
+        message.error({
+          content: `${friendlyName}: ${errorMessage}`,
+          duration: 5,
+        })
+      } else {
+        message.error({
+          content: '表单验证失败，请检查必填字段',
+          duration: 3,
+        })
+      }
     }
   }
 
@@ -933,51 +1035,6 @@ const NodeDetailPanel = ({
             </Form.Item>
           </>
         )
-      case 'export_file':
-        return (
-          <>
-            <Form.Item name="output_format" label="导出格式">
-              <Select defaultValue="json">
-                <Select.Option value="json">JSON</Select.Option>
-                <Select.Option value="xml">XML</Select.Option>
-                <Select.Option value="yaml">YAML</Select.Option>
-                <Select.Option value="csv">CSV</Select.Option>
-                <Select.Option value="excel">Excel</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item 
-              name="output_path" 
-              label="输出路径"
-              rules={[{ required: true, message: '请选择或输入输出路径' }]}
-            >
-              <Input.Group compact>
-                <Input
-                  style={{ width: 'calc(100% - 40px)' }}
-                  placeholder="例如: data/exports/output"
-                />
-                <Button
-                  type="default"
-                  icon={<FolderOpenOutlined />}
-                  onClick={() => handleFileSelect('output_path')}
-                  style={{ width: '40px' }}
-                />
-              </Input.Group>
-            </Form.Item>
-            <Form.Item name="pretty_print" label="格式化输出" valuePropName="checked">
-              <Switch defaultChecked />
-              <div style={{ marginTop: '4px', fontSize: '12px', color: '#8c8c8c' }}>
-                XML/JSON/YAML格式时，美化输出（格式化、缩进）
-              </div>
-            </Form.Item>
-            <Form.Item 
-              name="sort_by" 
-              label="排序字段（可选）"
-              tooltip="XML格式支持：按字段排序，例如 @attributes.id 表示按id属性排序"
-            >
-              <Input placeholder="例如: @attributes.id（仅XML格式支持）" />
-            </Form.Item>
-          </>
-        )
       // 所有新节点类型使用配置组件
       case 'edit_data':
       case 'filter_data':
@@ -990,7 +1047,10 @@ const NodeDetailPanel = ({
       case 'gemini':
       case 'deepseek':
       case 'memory':
-      case 'ai_agent': {
+      case 'ai_agent':
+      case 'gpt_agent':
+      case 'gemini_agent':
+      case 'export_file': {
         const ConfigComponent = getNodeConfigComponent(nodeData.type)
         if (ConfigComponent) {
           return (

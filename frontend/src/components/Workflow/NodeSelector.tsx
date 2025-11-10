@@ -165,6 +165,26 @@ const nodeOptions: NodeOption[] = [
     category: 'AI智能',
     subCategory: '智能代理',
   },
+  // GPT Agent 节点（合并 AIAgent 和 ChatModel）
+  {
+    type: 'gpt_agent',
+    label: 'GPT Agent',
+    description: '强大的 GPT Agent 节点，合并 AIAgent 和 ChatModel 功能，支持 ChatGPT Responses API 完整特性（文字、图片、文件、MCP服务、多Agent协作）',
+    icon: <RobotOutlined />,
+    color: '#10a37f',
+    category: 'AI智能',
+    subCategory: 'GPT代理',
+  },
+  // Gemini Agent 节点
+  {
+    type: 'gemini_agent',
+    label: 'Gemini Agent',
+    description: '强大的 Gemini Agent 节点，支持 Google Gemini API 完整特性（文字、图片、系统提示词、数据处理、缓存机制）',
+    icon: <RobotOutlined />,
+    color: '#4285f4',
+    category: 'AI智能',
+    subCategory: 'Gemini代理',
+  },
   // ChatGPT 节点
   {
     type: 'chatgpt',

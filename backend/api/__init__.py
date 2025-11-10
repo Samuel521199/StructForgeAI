@@ -3,7 +3,7 @@ API路由模块
 """
 from fastapi import APIRouter
 
-from api import files, schemas, workflows, ai, data_operations, ai_workflow, chat_model, memory
+from api import files, schemas, workflows, ai, data_operations, ai_workflow, chat_model, memory, gpt_agent, gemini_agent
 
 router = APIRouter()
 
@@ -16,4 +16,6 @@ router.include_router(data_operations.router, prefix="/data", tags=["数据操�
 router.include_router(ai_workflow.router, prefix="/ai-workflow", tags=["AI工作流"])
 router.include_router(chat_model.router, prefix="/chat-model", tags=["Chat Model"])
 router.include_router(memory.router, prefix="/memory", tags=["Memory"])
+router.include_router(gpt_agent.router, prefix="/gpt-agent", tags=["GPT Agent"])
+router.include_router(gemini_agent.router, prefix="/gemini-agent", tags=["Gemini Agent"])
 

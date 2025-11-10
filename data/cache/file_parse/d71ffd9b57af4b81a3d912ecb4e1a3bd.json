@@ -1,0 +1,527 @@
+{
+  "file_path": "F:\\StructForgeAI\\data\\uploads\\SkiOL_arm_armors.xml",
+  "file_signature": {
+    "mtime": 1762315218.7312546,
+    "size": 18444
+  },
+  "cached_at": "2025-11-10T15:59:19.795712",
+  "result": {
+    "data": {
+      "Item": [
+        {
+          "@attributes": "{'id': 'swordman_bracer', 'name': '{=armarmor0001}Eastern Swordman Bracer', 'mesh': 'sz_hand_001', 'culture': 'Culture.aserai', 'weight': '1.3', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '18', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'ranger_bracer', 'name': '{=armarmor0002}Ranger Bracer', 'mesh': 'sz_hand_002', 'culture': 'Culture.aserai', 'weight': '1.3', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '16', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'sz_hand_003', 'name': '{=armarmor0003}Embroidered Bracer', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'sz_hand_003', 'weight': '1.3', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '20', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'sz_hand_004', 'name': '{=armarmor0004}Yu Lin Lamellar Armour Barcer', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'sz_hand_004', 'weight': '3.6', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '22', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'sz_hand_005', 'name': '{=armarmor0005}Lamellar Leather Armour Barcer', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'sz_hand_005', 'weight': '1.9', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '16', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'sz_hand_006', 'name': '{=armarmor0006}Lamellar Vest Armour Barcer', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'sz_hand_006', 'weight': '1.9', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '18', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'sz_hand_005_1', 'name': '{=armarmor0007}Lamellar Leather Armour Barcer', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'sz_hand_005', 'weight': '1.8', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '16', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'sz_hand_006_1', 'name': '{=armarmor0008}Lamellar Vest Armour Barcer', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'sz_hand_006', 'weight': '1.8', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '18', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'nvs_hand_006', 'name': '{=SkiOL_handarmor0001}North leather strap wrist brace', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'nvs_hand_006', 'weight': '3.6', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '18', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'nvs_hand_003', 'name': '{=SkiOL_handarmor0002}Nordvisa Warrior Wrist Brace', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'nvs_hand_003', 'weight': '3.8', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '16', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'nvs_hand_005', 'name': '{=SkiOL_handarmor0003}Nordvisa Berserker Wrist Brace', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'nvs_hand_005', 'weight': '3.41', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '22', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'arn_hand_001', 'name': '{=SkiOL_handarmor0004}Erin Infantry Plate Hand Armor', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'crossbow_armor_leather_hand_a', 'weight': '3.5', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '18', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'arn_hand_003', 'name': '{=SkiOL_handarmor0005}Erin Axe-Lancer Hand Armor', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'crossbow_armor_leather_hand_b', 'weight': '3.8', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '20', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'arn_hand_005', 'name': '{=SkiOL_handarmor0006}Erin Halberd Hand Armor', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'imperial_gauntlets', 'weight': '4.2', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '24', 'covers_hands': 'false', 'modifier_group': 'plate', 'material_type': 'Plate'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'arn_hand_002', 'name': '{=SkiOL_handarmor0007}Erin Shooter Brace', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'padded_vambrace_a', 'weight': '1.6', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '11', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'arn_hand_004', 'name': '{=SkiOL_handarmor0008}Erin Senior Archer Brace', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'battania_noble_bracers', 'weight': '2.8', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '16', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'arn_hand_006', 'name': '{=SkiOL_handarmor0009}Erin Guard Archer Brace', 'is_merchandise': 'false', 'culture': 'Culture.neutral_culture', 'mesh': 'khuzait_heavy_armor_bracer', 'weight': '3.3', 'appearance': '0', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '19', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace', 'name': '{=SkiOL_handarmor0010}Southern Warrior Brace', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '23', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": ""
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_1', 'name': '{=lIJ1EVBh1}Cracked Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '6', 'stealth_factor': '4', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_2', 'name': '{=lIJ1EVBh2}Rusty Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '7', 'stealth_factor': '5', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_3', 'name': '{=lIJ1EVBh3}Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '8', 'stealth_factor': '5', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_4', 'name': '{=lIJ1EVBh4}Fine Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '9', 'stealth_factor': '5', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_5', 'name': '{=lIJ1EVBh5}Masterwork Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '10', 'stealth_factor': '6', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_6', 'name': '{=lIJ1EVBh6}Legendary Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '11', 'stealth_factor': '6', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'leather_gloves_7', 'name': '{=lIJ1EVBh7}Perfect Leather Gloves', 'mesh': 'crossbow_armor_hand', 'culture': 'Culture.neutral_culture', 'weight': '0.4', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '12', 'stealth_factor': '6', 'covers_hands': 'true', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true', 'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_1', 'name': '{=MamotK0a1}Cracked Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '9', 'stealth_factor': '8', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_2', 'name': '{=MamotK0a2}Rusty Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '10', 'stealth_factor': '9', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_3', 'name': '{=MamotK0a3}Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '11', 'stealth_factor': '10', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_4', 'name': '{=MamotK0a4}Fine Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '12', 'stealth_factor': '11', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_5', 'name': '{=MamotK0a5}Masterwork Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '13', 'stealth_factor': '11', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_6', 'name': '{=MamotK0a6}Legendary Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '14', 'stealth_factor': '12', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'padded_vambrace_7', 'name': '{=MamotK0a7}Perfect Padded Vambraces', 'mesh': 'padded_vambrace_a', 'culture': 'Culture.neutral_culture', 'weight': '0.1', 'difficulty': '0', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '15', 'stealth_factor': '13', 'modifier_group': 'cloth', 'material_type': 'Cloth'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Stealth': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_1', 'name': '{=LoUxaFeE1}Cracked Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '13', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_2', 'name': '{=LoUxaFeE2}Rusty Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '15', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_3', 'name': '{=LoUxaFeE3}Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '16', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_4', 'name': '{=LoUxaFeE4}Fine Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '17', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_5', 'name': '{=LoUxaFeE5}Masterwork Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '18', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_6', 'name': '{=LoUxaFeE6}Legendary Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '19', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        },
+        {
+          "@attributes": "{'id': 'steppe_leather_vambraces_7', 'name': '{=LoUxaFeE7}Perfect Leather Vambraces', 'mesh': 'khuzait_leather_armor_hand', 'culture': 'Culture.khuzait', 'weight': '0.5', 'appearance': '1', 'Type': 'HandArmor'}",
+          "ItemComponent": {
+            "Armor": {
+              "@attributes": "{'arm_armor': '20', 'covers_hands': 'false', 'modifier_group': 'leather', 'material_type': 'Leather'}"
+            }
+          },
+          "Flags": {
+            "@attributes": "{'Civilian': 'true'}"
+          }
+        }
+      ],
+      "<cyfunction Comment at 0x0000021DBB1B4790>": [
+        "改名",
+        "2025新版手甲装备"
+      ],
+      "#text": "改名 2025新版手甲装备"
+    },
+    "file_path": "F:\\StructForgeAI\\data\\uploads\\SkiOL_arm_armors.xml",
+    "original_format": "xml",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "Item": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ItemComponent": {
+                "type": "object",
+                "properties": {
+                  "Armor": {
+                    "type": "object",
+                    "properties": {},
+                    "attributes": {
+                      "arm_armor": {
+                        "type": "str"
+                      },
+                      "modifier_group": {
+                        "type": "str"
+                      },
+                      "material_type": {
+                        "type": "str"
+                      }
+                    }
+                  }
+                }
+              },
+              "Flags": {
+                "type": "object",
+                "properties": {},
+                "attributes": {
+                  "Civilian": {
+                    "type": "str"
+                  }
+                }
+              }
+            },
+            "attributes": {
+              "id": {
+                "type": "str"
+              },
+              "name": {
+                "type": "str"
+              },
+              "mesh": {
+                "type": "str"
+              },
+              "culture": {
+                "type": "str"
+              },
+              "weight": {
+                "type": "str"
+              },
+              "difficulty": {
+                "type": "str"
+              },
+              "appearance": {
+                "type": "str"
+              },
+              "Type": {
+                "type": "str"
+              }
+            }
+          }
+        },
+        "<cyfunction Comment at 0x0000021DBB1B4790>": {
+          "type": "array",
+          "items": {
+            "type": "str"
+          }
+        }
+      },
+      "text_content": {
+        "type": "string"
+      }
+    },
+    "hasData": true,
+    "hasSchema": true
+  }
+}

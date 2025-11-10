@@ -18,6 +18,9 @@ import { GeminiConfig } from './GeminiConfig'
 import { DeepSeekConfig } from './DeepSeekConfig'
 import { MemoryConfig } from './MemoryConfig'
 import AIAgentConfig from './AIAgentConfig'
+import GPTAgentConfig from './GPTAgentConfig'
+import GeminiAgentConfig from './GeminiAgentConfig'
+import { ExportFileConfig } from './ExportFileConfig'
 
 // 配置组件属性接口
 export interface NodeConfigProps {
@@ -50,6 +53,9 @@ const configRegistry: Partial<Record<NodeType, ConfigComponent>> = {
   deepseek: DeepSeekConfig,
   memory: MemoryConfig,
   ai_agent: AIAgentConfig,
+  gpt_agent: GPTAgentConfig,
+  gemini_agent: GeminiAgentConfig,
+  export_file: ExportFileConfig,
   // 其他节点配置组件将在后续添加
 }
 

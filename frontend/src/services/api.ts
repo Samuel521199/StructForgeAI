@@ -85,7 +85,14 @@ api.interceptors.response.use(
       params: error.config?.params,
       fullResponse: error.response
     })
-    return Promise.reject(new Error(message))
+    
+    // 创建一个增强的错误对象，保留原始响应信息
+    const enhancedError: any = new Error(message)
+    enhancedError.response = error.response
+    enhancedError.status = error.response?.status
+    enhancedError.config = error.config
+    
+    return Promise.reject(enhancedError)
   }
 )
 
@@ -119,6 +126,26 @@ export const fileApi = {
     console.log('发送解析请求，数据:', requestData)
     // 响应拦截器已经返回了 response.data，所以这里直接返回
     return api.post('/files/parse', requestData) as Promise<ParsedFile>
+  },
+
+  // 获取解析文件的缓存结果（用于页面刷新后恢复）
+  getParseCache: async (
+    filePath: string,
+    options?: {
+      convert_format?: boolean
+      output_format?: string
+      skip_schema?: boolean
+    }
+  ): Promise<{ cached: boolean; result: ParsedFile | null; error?: string }> => {
+    const params = new URLSearchParams({
+      file_path: filePath,
+      convert_format: String(options?.convert_format || false),
+      skip_schema: String(options?.skip_schema || false),
+    })
+    if (options?.output_format) {
+      params.append('output_format', options.output_format)
+    }
+    return api.get(`/files/parse-cache?${params.toString()}`) as Promise<{ cached: boolean; result: ParsedFile | null; error?: string }>
   },
 
   // 获取文件列表
@@ -481,6 +508,126 @@ export const chatModelApi = {
     response_preview?: string
   }> => {
     return api.post('/chat-model/test-connection', config)
+  },
+}
+
+// GPT Agent API
+export const gptAgentApi = {
+  // 执行 GPT Agent
+  execute: async (request: {
+    api_key: string
+    api_url?: string
+    model?: string
+    system_prompt?: string
+    instructions?: string
+    reasoning?: boolean
+    input?: string | any[]
+    input_content?: Array<{
+      type: 'input_text' | 'input_image' | 'input_file'
+      text?: string
+      image_url?: string
+      file_url?: string
+      file_id?: string
+    }>
+    file_path?: string
+    file_purpose?: string
+    mcp_servers?: Array<{
+      type: string
+      server_label: string
+      server_description: string
+      server_url: string
+      require_approval?: string
+    }>
+    agents?: Array<{
+      name: string
+      instructions: string
+      handoffs?: string[]
+    }>
+    input_data?: any
+    data_processing_mode?: string
+    data_limit_count?: number
+    max_data_tokens?: number
+    sample_strategy?: string
+    output_format?: string
+    temperature?: number
+    max_tokens?: number
+    timeout?: number
+    max_retries?: number
+    request_headers?: string
+  }): Promise<any> => {
+    const response: any = await api.post('/gpt-agent/execute', request)
+    return {
+      success: response.success,
+      data: response.data || response,
+      message: response.message,
+    }
+  },
+
+  // 上传文件到 OpenAI
+  uploadFile: async (
+    file: File,
+    apiKey: string,
+    purpose: string = 'user_data'
+  ): Promise<{
+    success: boolean
+    data: {
+      file_id: string
+      filename: string
+      purpose: string
+    }
+    message: string
+  }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('api_key', apiKey)
+    formData.append('purpose', purpose)
+    
+    const response: any = await api.post('/gpt-agent/upload-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return {
+      success: response.success,
+      data: response.data || response,
+      message: response.message,
+    }
+  },
+}
+
+// Gemini Agent API
+export const geminiAgentApi = {
+  // 执行 Gemini Agent
+  execute: async (request: {
+    api_key: string
+    api_url?: string
+    model?: string
+    system_prompt?: string
+    instructions?: string
+    input?: string | any[]
+    input_content?: Array<{
+      type: 'input_text' | 'input_image'
+      text?: string
+      image_url?: string
+      image_data?: string
+    }>
+    input_data?: any
+    data_processing_mode?: string
+    data_limit_count?: number
+    max_data_tokens?: number
+    sample_strategy?: string
+    output_format?: string
+    temperature?: number
+    max_tokens?: number
+    timeout?: number
+    max_retries?: number
+  }): Promise<any> => {
+    const response: any = await api.post('/gemini-agent/execute', request)
+    return {
+      success: response.success,
+      data: response.data || response,
+      message: response.message,
+    }
   },
 }
 

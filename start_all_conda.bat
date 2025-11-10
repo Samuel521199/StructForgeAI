@@ -13,7 +13,7 @@ set "FRONTEND_DIR=%PROJECT_ROOT%frontend"
 
 REM Check conda
 where conda >nul 2>&1
-if not "%errorlevel%"=="0" (
+if %errorlevel% neq 0 (
     echo [Error] Conda not found!
     echo Please install Anaconda or Miniconda
     pause
@@ -22,7 +22,7 @@ if not "%errorlevel%"=="0" (
 
 REM Check Node.js
 where node >nul 2>&1
-if not "%errorlevel%"=="0" (
+if %errorlevel% neq 0 (
     echo [Error] Node.js not found!
     echo Please install Node.js
     pause
@@ -32,7 +32,7 @@ if not "%errorlevel%"=="0" (
 REM Check if Conda environment exists
 echo [Check] Conda environment...
 call conda env list | findstr structforge-ai >nul
-if not "%errorlevel%"=="0" (
+if %errorlevel% neq 0 (
     echo [Error] Conda environment 'structforge-ai' not found!
     echo.
     echo Please run install script first:
@@ -95,4 +95,3 @@ start http://localhost:8000/docs
 echo.
 echo Services started!
 echo Keep this window open to view logs
-

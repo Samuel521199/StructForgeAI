@@ -18,6 +18,9 @@ import { GeminiExecutor } from './GeminiExecutor'
 import { DeepSeekExecutor } from './DeepSeekExecutor'
 import { MemoryExecutor } from './MemoryExecutor'
 import { AIAgentExecutor } from './AIAgentExecutor'
+import { GPTAgentExecutor } from './GPTAgentExecutor'
+import { GeminiAgentExecutor } from './GeminiAgentExecutor'
+import { ExportFileExecutor } from './ExportFileExecutor'
 
 // 执行器工厂函数类型
 type ExecutorFactory = (context: ExecutorContext) => BaseExecutor
@@ -37,6 +40,9 @@ const executorRegistry: Record<string, ExecutorFactory> = {
   deepseek: (context) => new DeepSeekExecutor(context),
   memory: (context) => new MemoryExecutor(context),
   ai_agent: (context) => new AIAgentExecutor(context),
+  gpt_agent: (context) => new GPTAgentExecutor(context),
+  gemini_agent: (context) => new GeminiAgentExecutor(context),
+  export_file: (context) => new ExportFileExecutor(context),
 }
 
 /**

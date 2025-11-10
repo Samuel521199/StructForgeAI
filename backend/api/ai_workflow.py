@@ -485,6 +485,19 @@ async def execute_ai_agent(request: AIAgentRequest):
             pass
         
         # 7. 构建返回结果
+        # 如果输出格式是 JSON 且包含结构分析，将其提取为 analysis 字段
+        analysis = None
+        if request.output_format == "json" and isinstance(processed_output, dict):
+            # 检查是否包含结构分析结果
+            if "analysis" in processed_output:
+                analysis = processed_output["analysis"]
+            elif "structure" in processed_output:
+                # 如果 processed_output 本身就是结构分析结果
+                analysis = processed_output
+            elif all(key in processed_output for key in ["root_element", "structure"]):
+                # 如果 processed_output 符合结构分析格式
+                analysis = processed_output
+        
         result = {
             "input_data": request.input_data,  # 保留输入数据
             "hasData": True,
@@ -501,6 +514,10 @@ async def execute_ai_agent(request: AIAgentRequest):
             "ai_agent_output": chat_response.content,  # 原始回答内容
             "output_format": request.output_format,
         }
+        
+        # 如果提取到了 analysis，添加到结果中（兼容 Generate Editor Config 节点）
+        if analysis:
+            result["analysis"] = analysis
         
         return ai_service.create_success_response(
             message="AI Agent 执行成功",
@@ -659,6 +676,14 @@ def _process_input_data(
                             estimated_tokens_per_item = len(sample_json) // 4
                             max_items = max(1, (max_tokens * 3 // 4) // estimated_tokens_per_item)
                     
+                    # 对于 XML 结构分析场景，如果数据量大，默认只选择一个代表性子项
+                    # 这样可以大大减少 token 使用，同时仍能推断出完整的结构
+                    if total_count > 10 and sample_strategy not in ["diverse", "head_tail", "uniform", "head", "random", "representative", "single_item"]:
+                        # 如果子项超过10个，且没有明确指定采样策略，使用单子项采样
+                        sample_strategy = "single_item"
+                        max_items = 1
+                        logger.info(f"XML数据量大（{total_count} 个子项），使用单子项采样策略进行结构分析")
+                    
                     if total_count > max_items:
                         # 需要采样
                         sampled_items = _smart_sample_xml_items(
@@ -680,7 +705,8 @@ def _process_input_data(
                             "strategy": sample_strategy if mode == "smart" else "diverse",
                             "is_xml": True,
                             "child_key": child_list["key"],
-                            "all_included": False
+                            "all_included": False,
+                            "note": f"已采样 {len(sampled_items)} 个子项（共 {total_count} 个）用于结构分析" if total_count > len(sampled_items) else None
                         }
                     else:
                         processed["_data_info"] = {
@@ -748,7 +774,7 @@ def _smart_sample_xml_items(
     Args:
         items: 子节点列表
         max_items: 最大采样数量
-        strategy: 采样策略 (diverse, head_tail, uniform, head, random)
+        strategy: 采样策略 (diverse, head_tail, uniform, head, random, single_item)
     
     Returns:
         采样后的子节点列表
@@ -758,6 +784,33 @@ def _smart_sample_xml_items(
     total_count = len(items)
     if total_count <= max_items:
         return items
+    
+    # 单子项采样：只选择一个最代表性的子项（用于结构分析）
+    if strategy == "single_item" or (strategy == "representative" and max_items == 1):
+        if total_count == 0:
+            return []
+        
+        # 选择最完整的子项（字段最多的）
+        best_item = items[0]
+        max_fields = 0
+        
+        for item in items:
+            if isinstance(item, dict):
+                # 计算字段数量（包括属性和子节点）
+                field_count = len([k for k in item.keys() if k not in ["@attributes", "#text"]])
+                if "@attributes" in item and isinstance(item["@attributes"], dict):
+                    field_count += len(item["@attributes"])
+                
+                # 递归计算嵌套子节点的字段数
+                for key, value in item.items():
+                    if key not in ["@attributes", "#text"] and isinstance(value, dict):
+                        field_count += len([k for k in value.keys() if k not in ["@attributes", "#text"]])
+                
+                if field_count > max_fields:
+                    max_fields = field_count
+                    best_item = item
+        
+        return [best_item]
     
     if strategy == "diverse":
         # 多样化采样：确保覆盖不同类型的子节点
@@ -869,6 +922,13 @@ def _smart_sample_xml_items(
         # 随机采样
         return random.sample(items, min(max_items, total_count))
     
+    elif strategy == "representative":
+        # 代表性采样：选择最完整的子项（字段最多的）
+        if max_items == 1:
+            return _smart_sample_xml_items(items, 1, "single_item")
+        else:
+            # 如果 max_items > 1，使用多样化采样
+            return _smart_sample_xml_items(items, max_items, "diverse")
     else:
         # 默认使用多样化采样
         return _smart_sample_xml_items(items, max_items, "diverse")

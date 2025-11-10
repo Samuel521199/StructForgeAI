@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "StructForge AI"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
+    PORT: int = 8001  # 服务端口
+    HOST: str = "0.0.0.0"  # 服务主机地址
     
     # CORS配置
     CORS_ORIGINS: List[str] = [

@@ -7,12 +7,19 @@ from typing import List, Optional, Any, Dict
 from pathlib import Path
 from datetime import datetime
 from pydantic import BaseModel
+import json
+import hashlib
+import os
 
 from core.config import settings
 from core.logging_config import logger
 from data_parser.parser_factory import ParserFactory
 
 router = APIRouter()
+
+# 缓存目录
+CACHE_DIR = Path(settings.UPLOAD_DIR).parent / "cache" / "file_parse"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class ParseFileRequest(BaseModel):
@@ -135,6 +142,165 @@ def _convert_to_format(data: Dict[str, Any], target_format: str, schema: Optiona
         return {"data": data, "format": target_format}
 
 
+def _get_cache_key(file_path: str, convert_format: bool, output_format: Optional[str], skip_schema: bool) -> str:
+    """
+    生成缓存键
+    
+    Args:
+        file_path: 文件路径
+        convert_format: 是否转换格式
+        output_format: 输出格式
+        skip_schema: 是否跳过Schema
+    
+    Returns:
+        缓存键（文件路径的哈希值 + 配置哈希值）
+    """
+    # 使用文件路径和配置生成唯一键
+    config_str = f"{convert_format}_{output_format}_{skip_schema}"
+    key_str = f"{file_path}|{config_str}"
+    return hashlib.md5(key_str.encode('utf-8')).hexdigest()
+
+
+def _get_file_signature(file_path: Path) -> Dict[str, Any]:
+    """
+    获取文件签名（修改时间和大小）
+    
+    Args:
+        file_path: 文件路径
+    
+    Returns:
+        文件签名字典
+    """
+    stat = file_path.stat()
+    return {
+        "mtime": stat.st_mtime,  # 修改时间
+        "size": stat.st_size,    # 文件大小
+    }
+
+
+def _load_cache(cache_key: str) -> Optional[Dict[str, Any]]:
+    """
+    加载缓存
+    
+    Args:
+        cache_key: 缓存键
+    
+    Returns:
+        缓存的解析结果，如果不存在或已过期则返回 None
+    """
+    cache_file = CACHE_DIR / f"{cache_key}.json"
+    if not cache_file.exists():
+        return None
+    
+    try:
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        
+        # 检查文件是否被修改
+        file_path = Path(cache_data.get("file_path", ""))
+        if not file_path.exists():
+            # 文件不存在，删除缓存
+            cache_file.unlink()
+            return None
+        
+        cached_signature = cache_data.get("file_signature", {})
+        current_signature = _get_file_signature(file_path)
+        
+        # 比较文件签名
+        if (cached_signature.get("mtime") != current_signature["mtime"] or
+            cached_signature.get("size") != current_signature["size"]):
+            # 文件已修改，删除缓存
+            cache_file.unlink()
+            logger.info(f"文件已修改，删除缓存: {file_path}")
+            return None
+        
+        logger.info(f"使用缓存结果: {file_path}")
+        return cache_data.get("result")
+    
+    except Exception as e:
+        logger.warning(f"加载缓存失败: {e}")
+        # 缓存文件损坏，删除它
+        if cache_file.exists():
+            cache_file.unlink()
+        return None
+
+
+def _save_cache(cache_key: str, file_path: Path, result: Dict[str, Any]) -> None:
+    """
+    保存缓存
+    
+    Args:
+        cache_key: 缓存键
+        file_path: 文件路径
+        result: 解析结果
+    """
+    try:
+        cache_file = CACHE_DIR / f"{cache_key}.json"
+        file_signature = _get_file_signature(file_path)
+        
+        cache_data = {
+            "file_path": str(file_path.resolve()),
+            "file_signature": file_signature,
+            "cached_at": datetime.now().isoformat(),
+            "result": result,
+        }
+        
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"缓存已保存: {file_path}")
+    
+    except Exception as e:
+        logger.warning(f"保存缓存失败: {e}，继续执行")
+
+
+@router.get("/parse-cache")
+async def get_parse_cache(
+    file_path: str,
+    convert_format: bool = False,
+    output_format: Optional[str] = None,
+    skip_schema: bool = False
+):
+    """
+    获取解析文件的缓存结果（如果存在）
+    
+    用于前端页面刷新后恢复节点执行结果
+    
+    Args:
+        file_path: 文件路径
+        convert_format: 是否转换格式
+        output_format: 输出格式
+        skip_schema: 是否跳过Schema
+    
+    Returns:
+        缓存结果，如果不存在则返回 None
+    """
+    try:
+        path = Path(file_path)
+        if not path.exists():
+            return {"cached": False, "result": None}
+        
+        # 生成缓存键
+        cache_key = _get_cache_key(
+            str(path.resolve()),
+            convert_format,
+            output_format,
+            skip_schema
+        )
+        
+        # 尝试加载缓存
+        cached_result = _load_cache(cache_key)
+        if cached_result is not None:
+            logger.info(f"返回缓存结果，文件: {path}")
+            return {"cached": True, "result": cached_result}
+        else:
+            return {"cached": False, "result": None}
+    
+    except Exception as e:
+        logger.warning(f"获取缓存失败: {e}")
+        return {"cached": False, "result": None, "error": str(e)}
+
+
 @router.post("/parse")
 async def parse_file(request: ParseFileRequest):
     """
@@ -144,11 +310,33 @@ async def parse_file(request: ParseFileRequest):
     - output_format: 输出格式（json, table, schema, xml, yaml, csv, 或 None）
     - convert_format: 是否转换格式（False=只读取识别，True=转换为指定格式）
     - skip_schema: 是否跳过Schema检测（提升性能）
+    
+    缓存机制：
+    - 如果文件未被修改，直接返回缓存结果
+    - 文件修改检测：使用文件修改时间（mtime）和文件大小
+    - 缓存存储在：data/cache/file_parse/
     """
     try:
         path = Path(request.file_path)
         if not path.exists():
             raise HTTPException(status_code=404, detail=f"文件不存在: {request.file_path}")
+        
+        # 生成缓存键
+        cache_key = _get_cache_key(
+            str(path.resolve()),
+            request.convert_format,
+            request.output_format,
+            request.skip_schema
+        )
+        
+        # 尝试加载缓存
+        cached_result = _load_cache(cache_key)
+        if cached_result is not None:
+            logger.info(f"使用缓存结果，文件: {path}")
+            return cached_result
+        
+        # 缓存未命中或文件已修改，执行解析
+        logger.info(f"解析文件（未使用缓存）: {path}")
         
         parser = ParserFactory.create_parser(path)
         if not parser:
@@ -207,6 +395,9 @@ async def parse_file(request: ParseFileRequest):
         else:
             result["hasData"] = bool(serializable_data)
             result["hasSchema"] = schema is not None
+        
+        # 保存缓存
+        _save_cache(cache_key, absolute_path, result)
         
         return result
     except HTTPException:

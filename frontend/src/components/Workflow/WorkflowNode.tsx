@@ -32,6 +32,8 @@ export type NodeType =
   | 'smart_edit'
   | 'generate_workflow'
   | 'ai_agent'
+  | 'gpt_agent'
+  | 'gemini_agent'
   | 'chatgpt'
   | 'gemini'
   | 'deepseek'
@@ -101,6 +103,15 @@ const validateNodeConfig = (type: NodeType, config?: Record<string, any>): { isV
     case 'generate_workflow':
       // generate_workflow 从上游节点获取数据
       break
+    case 'gpt_agent':
+    case 'gemini_agent':
+      if (!config.api_key || config.api_key.trim() === '') {
+        missingFields.push('api_key')
+      }
+      if (!config.api_url || config.api_url.trim() === '') {
+        missingFields.push('api_url')
+      }
+      break
     case 'chatgpt':
     case 'gemini':
     case 'deepseek':
@@ -161,6 +172,10 @@ const getNodeDisplayInfo = (type: NodeType, config?: Record<string, any>): strin
       return config.instruction ? config.instruction.substring(0, 20) + '...' : null
     case 'generate_workflow':
       return config.workflow_type ? `生成${config.workflow_type}工作流` : null
+    case 'gpt_agent':
+      return config.model ? `GPT Agent (${config.model})` : 'GPT Agent'
+    case 'gemini_agent':
+      return config.model ? `Gemini Agent (${config.model})` : 'Gemini Agent'
     case 'chatgpt':
       return config.model ? `ChatGPT (${config.model})` : 'ChatGPT'
     case 'gemini':
@@ -226,6 +241,14 @@ const nodeConfig: Record<NodeType, { icon: JSX.Element; color: string }> = {
   ai_agent: {
     icon: <RobotOutlined />,
     color: '#722ed1',
+  },
+  gpt_agent: {
+    icon: <RobotOutlined />,
+    color: '#10a37f',
+  },
+  gemini_agent: {
+    icon: <RobotOutlined />,
+    color: '#4285f4',
   },
   chatgpt: {
     icon: <ApiOutlined />,

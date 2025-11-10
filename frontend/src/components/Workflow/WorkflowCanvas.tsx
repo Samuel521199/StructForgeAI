@@ -17,6 +17,7 @@ import 'reactflow/dist/style.css'
 import { message } from 'antd'
 import WorkflowNode from './WorkflowNode'
 import AIAgentNode from './AIAgentNode'
+import GPTAgentNode from './GPTAgentNode'
 import { CustomEdge } from './CustomEdge'
 import WorkflowToolbar from './WorkflowToolbar'
 import './WorkflowCanvas.css'
@@ -24,6 +25,7 @@ import './WorkflowCanvas.css'
 const nodeTypes = {
   default: WorkflowNode,
   ai_agent: AIAgentNode,
+  gpt_agent: GPTAgentNode,
 }
 
 const edgeTypes = {

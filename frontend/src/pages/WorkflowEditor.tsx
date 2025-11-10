@@ -287,6 +287,90 @@ const WorkflowEditor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId, nameFromUrl, descriptionFromUrl]) // 当workflowId、nameFromUrl或descriptionFromUrl变化时重新初始化
 
+  // 页面加载后，自动恢复 parse_file 节点的缓存结果
+  // 使用 ref 跟踪已恢复的节点，避免重复恢复
+  const restoredNodesRef = useRef<Set<string>>(new Set())
+  const nodeExecutionResultsRef = useRef<Map<string, any>>(new Map())
+  
+  // 同步 nodeExecutionResults 到 ref
+  useEffect(() => {
+    nodeExecutionResultsRef.current = nodeExecutionResults
+  }, [nodeExecutionResults])
+  
+  useEffect(() => {
+    if (!initialized || nodes.length === 0) {
+      return
+    }
+
+    // 查找所有 parse_file 节点
+    const parseFileNodes = nodes.filter(
+      (node) => node.data?.type === 'parse_file' && node.data?.config?.file_path
+    )
+
+    if (parseFileNodes.length === 0) {
+      return
+    }
+
+    console.log(`[WorkflowEditor] 发现 ${parseFileNodes.length} 个 parse_file 节点，开始恢复缓存...`)
+
+    // 异步加载所有 parse_file 节点的缓存
+    const loadCaches = async () => {
+      for (const node of parseFileNodes) {
+        const nodeId = node.id
+        const config = node.data.config || {}
+        const filePath = config.file_path
+
+        if (!filePath || filePath.trim() === '') {
+          continue
+        }
+
+        // 检查是否已经恢复过（避免重复恢复）
+        if (restoredNodesRef.current.has(nodeId)) {
+          console.log(`[WorkflowEditor] 节点 ${nodeId} 已恢复过缓存，跳过`)
+          continue
+        }
+
+        // 检查是否已有执行结果（从 ref 中读取，避免依赖问题）
+        if (nodeExecutionResultsRef.current.has(nodeId)) {
+          console.log(`[WorkflowEditor] 节点 ${nodeId} 已有执行结果，跳过缓存恢复`)
+          restoredNodesRef.current.add(nodeId)
+          continue
+        }
+
+        try {
+          const { fileApi } = await import('@/services/api')
+          const cacheResult = await fileApi.getParseCache(filePath, {
+            convert_format: config.convert_format || false,
+            output_format: config.output_format,
+            skip_schema: config.skip_schema || false,
+          })
+
+          if (cacheResult.cached && cacheResult.result) {
+            console.log(`[WorkflowEditor] 恢复节点 ${nodeId} 的缓存结果`)
+            updateNodeExecutionResult(nodeId, cacheResult.result)
+            restoredNodesRef.current.add(nodeId)
+          } else {
+            console.log(`[WorkflowEditor] 节点 ${nodeId} 没有缓存结果`)
+            restoredNodesRef.current.add(nodeId) // 标记为已检查，避免重复检查
+          }
+        } catch (error) {
+          console.warn(`[WorkflowEditor] 恢复节点 ${nodeId} 缓存失败:`, error)
+          restoredNodesRef.current.add(nodeId) // 即使失败也标记，避免重复尝试
+        }
+      }
+    }
+
+    // 延迟执行，避免阻塞页面渲染
+    const timer = setTimeout(() => {
+      loadCaches()
+    }, 500)
+
+    return () => {
+      clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized, nodes]) // 不包含 nodeExecutionResults，避免无限循环
+
   const loadWorkflow = async (id: string) => {
     try {
       setLoading(true)
